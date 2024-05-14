@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .con {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            left: 100px;
+            top: 300px;
+            position: fixed;
+             transition: 2s linear;
+            /*border: 1px dashed #aaa;*/
+            /*animation: moveX 2s infinite;*/
+        }
+
+        .ball {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #0d84ff;
+            position: absolute;
+             transition: 2s cubic-bezier(0.5, 1.5, 1, 1);
+            /*animation: moveY 2s cubic-bezier(0.5, -0.5, 1, 1) infinite;*/
+        }
+
+        .end {
+            width: 50px;
+            height: 50px;
+            background: #0d84ff;
+        }
+
+        @keyframes moveX {
+            to {
+                transform: translateX(200px);
+            }
+        }
+
+        @keyframes moveY {
+            to {
+                transform: translateY(300px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="con">
+        <div class="ball"></div>
+    </div>
+    <div class="end"></div>
+</body>
+
+<script>
+    const con = document.querySelector('.con');
+    const ball = document.querySelector('.ball');
+    const end = document.querySelector('.end');
+    let x = 0, y = 0;
+
+    ball.style.transform = 'translateY(0)';
+    con.style.transform = 'translateX(0)';
+    ball.clientWidth
+
+    ball.style.transform = 'translateY(-150px)';
+    con.style.transform = 'translateX(200px)';
+
+    // 监听过渡效果开始
+    ball.addEventListener('transitionstart', function () {
+        console.log('transitionstart');
+    })
+
+
+    // 监听过渡效果结束
+    ball.addEventListener('transitionend', function () {
+        console.log('transitionend');
+        end.style.background = '#000';
+    },{
+        once: true
+    });
+</script>
+
+</html>

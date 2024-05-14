@@ -1,0 +1,283 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+html {
+    /* 计算方法 15/(1920/100) */
+    /* 默认15字体大小 */
+    /* 1920默认屏幕宽度 */
+    /* 100份 */
+    font-size: 0.78125vw !important;
+    overflow-x: hidden;
+}
+body {
+    /* height: 20000px; */
+}
+
+/* 第一屏 */
+.screen {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+}
+.kv-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100vh;
+}
+.kv-content img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* 第二屏 */
+.summary-content {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 100%;
+    height: 100vh;
+    transform: translate(-50%, 0);
+}
+.summary-content video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.text1 {
+    position: absolute;
+    top: 60rem;
+    left: 21rem;
+    opacity: 0;
+    font-size: 4rem;
+    color: #fff;
+}
+.text2 {
+    position: absolute;
+    top: 29.26rem;
+    left: 29.33rem;
+    opacity: 0;
+    font-size: 8rem;
+    color: #fff;
+}
+
+/* 第三屏 */
+.section3 {
+    /* background-color: pink; */
+}
+.color-img {
+    width: 49rem;
+    position: absolute;
+    top: 12rem;
+    left: 40rem;
+}
+.color1,
+.color2,
+.color3,
+.color4 {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.color1 {
+    margin-left: 90rem;
+}
+.color2 {
+    margin-left: 100rem;
+    scale: 1.1;
+}
+.color3 {
+    margin-left: 110rem;
+    scale: 1.2;
+}
+.color4 {
+    margin-left: 120rem;
+    scale: 1.3;
+}
+
+/* 第四屏 */
+.parallel {
+    width: 100%;
+    height: 100%;
+    margin-top: 0;
+    position: relative;
+    overflow: hidden;
+    z-index: 50;
+    box-sizing: border-box;
+}
+.page1 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    /* background-color: pink; */
+}
+.page1 .title {
+    width: 100%;
+    text-align: center;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-image: -webkit-linear-gradient(300deg, #4acbff 40%, #93ebff 47%, #ffd178 65%);
+    font-size: 8em;
+    font-family: HanyiVar-vivo-hwid-65;
+    color: #000000;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+}
+.page1 .info {
+    position: absolute;
+    left: calc(50% + 17rem);
+    top: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+}
+.page1 .p2 {
+    font-size: 2.66666666em;
+    font-family: HanyiVar-vivo-hwid-65;
+    color: #272727;
+}
+.page1 .p3 {
+    font-size: 1.333333em;
+    font-family: HanyiVar-vivo-hwid-50;
+    color: #717171;
+    line-height: 1.3em;
+    margin-top: 1em;
+}
+.video1 {
+    width: 20.3rem;
+    position: absolute;
+    left: 40rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.page2 {
+    display: flex;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 128rem;
+    height: 100%;
+    /* background-color: skyblue; */
+}
+.page2 .div2 {
+    margin-left: 10rem;
+    float: left;
+    width: 68rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.page2 .info {
+    padding-top: 45px;
+    margin-left: 10rem;
+    float: left;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.page2 .info .p2 {
+    font-size: 2.66666666rem;
+    font-family: HanyiVar-vivo-hwid-65;
+    color: #272727;
+}
+.page2 .info .p3 {
+    font-size: 1.333333em;
+    font-family: HanyiVar-vivo-hwid-50;
+    color: #717171;
+    line-height: 1.3rem;
+    margin-top: 1rem;
+}
+
+/* 第五屏 */
+.section5 {
+    /* background-color: pink; */
+}
+.wrapper {
+    width: 100%;
+    height: 100%;
+    margin-top: 0;
+    position: relative;
+    overflow: hidden;
+    z-index: 50;
+    box-sizing: border-box;
+}
+.rom-content {
+    width: 100%;
+    height: 20em;
+    position: absolute;
+    top: calc(50% + 25px);
+    transform: translateY(-50%);
+    left: 0;
+    overflow: hidden;
+}
+.rom-txt {
+    width: 100%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0;
+    font-size: 20em;
+    text-align: center;
+    font-family: HanyiVar-vivo-hwid-65;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-image: -webkit-linear-gradient(110deg, #58b7f4 35%, #9ee6fa 55%);
+    background-size: 200% 100%;
+    background-position: left center;
+}
+
+.rom-img {
+    width: 127rem;
+}
+.rom-img img {
+    position: absolute;
+    top: 25%;
+    /* left: 50%;
+    transform: translate(-50%, -50%); */
+}
+.pic1,
+.pic7 {
+    width: 11.26rem;
+}
+.pic2,
+.pic6 {
+    width: 13.06rem;
+}
+.pic3,
+.pic5 {
+    width: 14.86rem;
+}
+.pic4 {
+    width: 18.75rem;
+    left: 55.125rem;
+}
+
+.pic1,
+.pic2,
+.pic3 {
+    left: 55.125rem;
+    z-index: -1;
+}
+
+.pic5,
+.pic6,
+.pic7 {
+    right: 55.125rem;
+    z-index: -1;
+}

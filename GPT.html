@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body{
+            --left: 50px;
+            --top:200px;
+            --height:0px;
+        }
+        #preview{
+            position: relative;
+        }
+        #cursor{
+            content: '';
+            position: absolute;
+            width: 5px;
+            height: 16px;
+            background: #1bbeda;
+            animation: toggle 0.8s infinite;
+            opacity: 0;
+            /*transform: translateY(16px);*/
+            left: calc(var(--left) * 1px);
+            top: calc(var(--top)* 1px);
+        }
+        #text-input{
+            outline: none;
+            display: block;
+            resize: none;
+            line-height: 2;
+            background: #333;
+            color: #F5F5F5;
+        }
+        @keyframes toggle {
+            30%{
+                opacity: 1;
+            }
+        }
+    </style>
+    <script src="markdown/markdown.js"></script>
+</head>
+<body>
+<textarea id="text-input" oninput="this.editor.update()" rows="1" cols="60"></textarea>
+<div id="preview"></div>
+<div id="cursor"></div>
+<script>
+    const data = '# 一级标题\n' +
+        '## 二级标题\n'+
+        '### 二级标题\n'
+    const $ = function (id) { return document.getElementById(id); };
+    const input = $("text-input")
+    const preview = $("preview")
+    const cursor = $("cursor")
+
+    function getLesTextNode(dom){
+        const childNodes = dom.childNodes
+        for (let i = childNodes.length - 1; i>=0; i--){
+            const node = childNodes[i]
+            if (node.nodeType === Node.TEXT_NODE && /\S/.test(node.nodeValue)){
+                node.nodeValue = node.nodeValue.replace(/\s+$/,'')
+                return node
+            }else if (node.nodeType === Node.ELEMENT_NODE){
+                let last = getLesTextNode(node)
+                if (last){
+                    return last
+                }
+            }
+        }
+        return null
+    }
+    function Editor(input, preview) {
+        this.update = function () {
+            input.style.height = 'auto'
+            input.style.height = input.scrollHeight + 'px'
+            preview.innerHTML = markdown.toHTML(input.value);
+            const lastText = getLesTextNode(preview)
+            const node = document.createTextNode('\u200b')
+            if (lastText){
+                lastText.parentNode.appendChild(node)
+            }else {
+                preview.appendChild(node)
+            }
+            const range = document.createRange()
+            range.setStart(node,0)
+            range.setEnd(node,0)
+            const rect = range.getBoundingClientRect()
+            const x = rect.left + 5
+            const y = rect.top + rect.height / 2 - 8
+            cursor.style.setProperty('--left',x)
+            cursor.style.setProperty('--top',y)
+            node.remove()
+        };
+
+        input.editor = this;
+        this.update();
+    }
+    let index = 0;
+    let timer = setInterval(()=>{
+        if (index >= data.length){
+            clearInterval(timer)
+            return;
+        }
+        input.value += data[index ++]
+        new Editor(input, preview);
+    },200)
+
+
+</script>
+</body>
+</html>

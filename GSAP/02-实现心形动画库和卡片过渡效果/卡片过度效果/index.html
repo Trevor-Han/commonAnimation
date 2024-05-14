@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <style>
+            .content {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                row-gap: 20px;
+                column-gap: 20px;
+                padding: 10%;
+            }
+            .content > div {
+                height: 100px;
+                background-color: skyblue;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="content">
+            <div>1</div>
+            <div>2</div>
+            <div>3</div>
+            <div>4</div>
+            <div>5</div>
+            <div>6</div>
+            <div>7</div>
+            <div>8</div>
+        </div>
+        <script src="../../js/gsap.min.js"></script>
+        <script>
+            gsap.from('.content > div', {
+                scale: 0.5,
+                y: -50,
+                stagger: 0.1, // 交错
+                opacity: 0,
+                ease: 'back.in',
+            })
+
+            document.querySelectorAll('.content > div').forEach((ele) => {
+                ele.addEventListener('click', () => {
+                    gsap.to('.content > div', {
+                        duration: 0.5,
+                        opacity: 0,
+                        y: -100,
+                        stagger: 0.1,
+                        ease: 'back.out',
+                    })
+                })
+            })
+        </script>
+    </body>
+</html>

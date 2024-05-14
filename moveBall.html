@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body,html{
+            width: 100%;
+            height: 100%;
+            background: #222;
+            overflow: hidden;
+            position: relative;
+            --m-x:51px;
+            --m-y:51px
+        }
+        .playground{
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%,-50%);
+            width: 600px;
+            height: 300px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .ball{
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            /*border: 1px solid #FFFFFF;*/
+            position: relative;
+        }
+        .ball_A{
+            /*border: 1px solid #a101f6;*/
+            color: #FFFFFF;
+            background: #a101f6;
+            cursor: pointer;
+            animation: scaleBall 0.5s forwards;
+        }
+        .ball_B{
+            /*border: 1px solid #FFFFFF;*/
+            color: #FFFFFF;
+        }
+        .ball_B1{
+            border: none;
+            width: 20px;
+            height: 20px;
+            background:#0d84ff;
+            transform: scale(0);
+            left: -20px;
+            border-radius: 10px 30px  20px  20px  / 15px  10px  25px  25px;
+            animation: transBall 0.8s 1.2s forwards;
+        }
+        .text{
+            display: inline-block;
+            width: 100px;
+            line-height: 100px;
+            color: white;
+            text-align: center;
+        }
+        @keyframes scaleBall {
+            0%{
+                transform: scale(1.0);
+            }
+            100%{
+                transform: scale(1.3);
+                background: none;
+                /*border: 1px solid #fff;*/
+            }
+        }
+        .small-ball{
+            width: 10px;
+            height: 10px;
+            background: #0d84ff;
+            border-radius: 50%;
+            position: absolute;
+            /*animation: moveBall 0.5s forwards;*/
+        }
+        @keyframes transBall {
+            0%{
+                transform: scale(0);
+                border-radius: 5px 10px  15px  5px  / 8px  7px  6px  15px;
+            }
+            50%{
+                border-radius: 10px 30px  20px  20px  / 15px  10px  25px  25px;
+            }
+            100%{
+                transform: scale(6);
+                border-radius: 50px
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="playground">
+    <div class="ball ball_A">
+        <span class="text">A</span>
+    </div>
+    <div class="ball ball_B">
+        <span class="text">B</span>
+    </div>
+</div>
+<div class="playground">
+    <div class="ball" style="opacity: 0">
+        <span class="text">a</span>
+    </div>
+    <div class="ball ball_B1">
+<!--        <span class="text">B</span>-->
+    </div>
+</div>
+<script>
+    const playground = document.querySelector('.playground')
+    const ctx = document.querySelector('.ball_A')
+    const ctx_b = document.querySelector('.ball_B')
+
+    const play = playground.getBoundingClientRect()
+    const rect = ctx.getBoundingClientRect()
+    const rect_b = ctx_b.getBoundingClientRect()
+
+    const list = []
+    const pox = {
+        y: rect.height,
+        x: rect.width,
+        bx: rect_b.left - play.left,
+        by: rect_b.top - play.top
+    }
+    class Ball{
+        constructor(con,x,y) {
+            this.x = x;
+            this.y = y;
+            this.width = con.x;
+            this.height = con.y;
+            this.ex = this.random(-20,con.x)
+            this.ey = this.random(-20,con.y)
+            this.dx = this.random(-5, 6); // -5~5
+            this.dy = this.random(-5, 6); // -5~5
+            this.dom = ''
+        }
+        random(min,max){
+            return Math.random()* (max - min) + min;
+        }
+        render(index,step){
+            const move = `@keyframes moveBall_${index} {
+            0%{
+                top:${this.y}px;
+                left: ${this.x}px;
+            }
+            50%{
+                top:${this.ey}px;
+                left: ${this.ex}px;
+            }
+            100%{
+                top:${this.y}px;
+                left: ${pox.bx - 100}px;
+            }
+        }`
+            // const style = document.createElement('style')
+            // style.setAttribute('type', 'text/css')
+            // document.head.appendChild(style)
+            // style.sheet.insertRule(move, 0)
+
+            const sheet = document.styleSheets[0];
+            sheet.insertRule(move, 0)
+            const div = document.createElement("div")
+            div.className = 'small-ball'
+            // div.style.top = this.ey + 'px'
+            // div.style.left = this.ex + 'px'
+            div.style.transform = `scale(${Math.random() + 0.5})`
+            div.style.opacity = Math.random() + 0.5
+            div.style.animation = `moveBall_${index} ${step}s cubic-bezier(0.23, 1, 0.32, 1) forwards`
+            ctx.appendChild(div)
+            this.dom = div
+        }
+        renderDom(){
+            const item = this.dom
+            item.style.top = this.y + 'px'
+            item.style.left = this.x + 'px'
+        }
+        update(){
+            this.x += this.dx;
+            this.y += this.dy;
+            return !(this.x <= this.random(0, 5) || this.y <= this.random(0, 5) || this.x > this.ex || this.y > this.ey );
+        }
+    }
+
+    creatBall()
+    // render()
+    function creatBall(){
+        let step = 2
+        const x = pox.x / 2
+        const y = pox.y / 2
+        for (let i = 0; i< 50; i++){
+            step += 0.01
+            const ball = new Ball(pox,x,y)
+            ball.render(i,step)
+            list.push(ball)
+        }
+    }
+    function render(){
+        for (let i = 0; i < list.length;i++){
+            let ball = list[i];
+            let res = ball.update();
+            if (res){
+                ball.renderDom()
+            }
+        }
+        // requestAnimationFrame(render)
+    }
+
+</script>
+<script>
+    // 对与多段动画的组合，一方面可以使用第三方库，一方面可以使用原生的transition过渡或者animation动画。
+    // 对于requestAnimationFrame，他更适合连续的持续动画，多段动画它实现起来比较麻烦。
+
+    // 动态动画属性设置，可以直接利用document.styleSheets[0].insertRule 去加入到 style 中
+</script>
+</body>
+</html>

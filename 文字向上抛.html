@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字向上抛</title>
+    <style>
+        .text-bubble {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(0, 0, 255, 0.5);
+            font-size: 24px;
+            padding: 10px;
+            border-radius: 10px;
+            opacity: 1;
+            animation: throwUp 1.5s cubic-bezier(0.075,0.82,0.165,1) forwards;
+        }
+        .text{
+            transform: rotate(0);
+            animation: throwRotate 0.4s linear infinite;
+        }
+
+        @keyframes throwUp {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            60%{
+                opacity: 1;
+                transform: translateY(-150px);
+            }
+            100% {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+        }
+        @keyframes throwRotate {
+            0% {
+                transform: rotate(0);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="con"></div>
+
+<script>
+    const con = document.querySelector('.con')
+    // const div = document.querySelector('.text-bubble')
+    document.addEventListener('click', function() {
+        const div = document.createElement('div')
+        const textDiv = document.createElement('div')
+
+        div.className = 'text-bubble'
+        textDiv.className = 'text'
+
+        textDiv.textContent = 'w'
+        div.appendChild(textDiv)
+        con.appendChild(div)
+        div.addEventListener('animationend',function (){
+            console.log(111);
+            con.removeChild(div)
+        })
+    });
+
+</script>
+
+</body>
+</html>

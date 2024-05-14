@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div class="content">
+            <div>
+                <div class="box"></div>
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+            </div>
+            <div>
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+            </div>
+            <div>
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+            </div>
+            <div>
+                <div class="box"></div>
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+            </div>
+            <div>
+                <div class="box"></div>
+                <div class="box"></div>
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+                <img src="./1.webp" />
+            </div>
+            <div>
+                <div class="box"></div>
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+            </div>
+            <div>
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+            </div>
+            <div>
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+            </div>
+            <div>
+                <div class="box"></div>
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+                <img src="./2.webp" />
+            </div>
+        </div>
+        <script src="../../js/gsap.min.js"></script>
+        <script>
+            gsap.to('.content img', {
+                scale: 0.1, // 缩放
+                y: 60, // Y轴
+                duration: 2, // 动画持续时间
+                repeat: -1, // 重复次数,-1不断重复
+                yoyo: true, // 悠悠球效果ssssssssss
+                delay: 1, // 动画延迟时间,1秒后执行动画
+                stagger: {
+                    // 交错执行
+                    amount: 1.5,
+                    grid: 'auto',
+                    from: 'center',
+                },
+            })
+        </script>
+    </body>
+</html>

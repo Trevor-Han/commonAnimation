@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+  <style>
+    *{
+        margin: 0;
+        padding: 0;
+    }
+    body,html{
+        width: 100%;
+        height: 100%;
+    }
+    .header{
+        width: 100%;
+        height: 1000px;
+    }
+    .playground{
+        width: 100%;
+        height: 4000px;
+        background: #333;
+    }
+    .animation-container{
+        width: 100%;
+        height: 500px;
+        /*background: #ff2648;*/
+        position: sticky;
+        top: 0;
+    }
+    .list{
+        padding: 20px 50px;
+        width: 100%;
+        top: 50%;
+        left: 50%;
+        position: absolute;
+        transform: translate(-50%,-50%);
+        box-sizing: border-box;
+    }
+    .list-item{
+        border-radius: 5px;
+        float: left;
+        margin-left: 100px;
+        margin-bottom: 50px;
+        width: 100px;
+        height: 100px;
+        background: orange;
+    }
+    .footer{
+        width: 100%;
+        height: 1000px;
+    }
+    .at-button {
+        outline: none;
+        appearance: none;
+        border-radius: 13px;
+        padding: 0 8px;
+        border: 1px solid blue;
+        background-color: transparent;
+        height: 26px;
+        color: blue;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+    <span class="at-button">121211</span>1212111111
+</div>
+<div class="playground">
+    <div class="animation-container">
+        <div class="list">
+            <div data-order="0" class="list-item"></div>
+            <div data-order="1" class="list-item"></div>
+            <div data-order="2" class="list-item"></div>
+            <div data-order="3" class="list-item"></div>
+            <div data-order="2" class="list-item"></div>
+            <div data-order="1" class="list-item"></div>
+            <div data-order="0" class="list-item"></div>
+            <div data-order="0" class="list-item"></div>
+            <div data-order="1" class="list-item"></div>
+            <div data-order="2" class="list-item"></div>
+            <div data-order="3" class="list-item"></div>
+            <div data-order="2" class="list-item"></div>
+            <div data-order="1" class="list-item"></div>
+            <div data-order="0" class="list-item"></div>
+        </div>
+    </div>
+</div>
+<div class="footer"></div>
+</body>
+
+<script>
+const items = document.querySelectorAll('.list-item');
+const playGround = document.querySelector('.playground');
+const list = document.querySelector('.list');
+const animateMap = new Map()
+
+
+function createAnimation(scrollStart,scrollEnd, valueStart,valueEnd){
+    return function (scroll){
+        if (scroll <= scrollStart){
+            return valueStart
+        }
+        if (scroll >= scrollEnd){
+            return valueEnd
+        }
+        return  valueStart + (valueEnd - valueStart) * (scroll - scrollStart) / (scrollEnd - scrollStart)
+    }
+}
+function getDomAnimation (scrollStart,scrollEnd,dom){
+    scrollStart = scrollStart + dom.dataset.order * 600
+    const opacityAnimation = createAnimation(scrollStart,scrollEnd,0,1)
+    const opacity = function (scroll){
+        return opacityAnimation(scroll)
+    }
+    const scaleAnimation = createAnimation(scrollStart,scrollEnd,0.5,1)
+    const xAnimation = createAnimation(scrollStart,scrollEnd,list.clientWidth/2 - dom.offsetLeft - dom.clientWidth/2,0)
+    const yAnimation = createAnimation(scrollStart,scrollEnd,list.clientHeight/2 - dom.offsetTop - dom.clientHeight/2,0)
+    const transform = function (scroll){
+        return `translate(${xAnimation(scroll)}px,${yAnimation(scroll)}px) scale(${scaleAnimation(scroll)})`
+    }
+    return {
+        opacity,
+        transform
+    }
+}
+function updateMap(){
+    animateMap.clear();
+    const playGroundRect = playGround.getBoundingClientRect()
+    const scrollStart = playGroundRect.top + window.scrollY
+    const scrollEnd = playGroundRect.bottom + window.scrollY - window.innerHeight
+    for (const item of items){
+        animateMap.set(item,getDomAnimation(scrollStart,scrollEnd,item))
+    }
+}
+function updateStyles(){
+    const scroll = window.scrollY
+    for (let [dom,value] of animateMap){
+        for (const cssProp in value){
+            dom.style[cssProp] = value[cssProp](scroll);
+        }
+    }
+}
+
+updateMap()
+updateStyles()
+window.addEventListener('scroll', updateStyles)
+</script>
+</html>

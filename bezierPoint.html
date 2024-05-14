@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body,html{
+            width: 100%;
+            height: 100%;
+        }
+        .con{
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .ball-con{
+            width: 10px;
+            height: 10px;
+            left: 50px;
+            top: 60px;
+            position: absolute;
+        }
+        .ball{
+            width: 10px;
+            height: 10px;
+            background: #0d84ff;
+        }
+    </style>
+</head>
+<body>
+<div class="con">
+    <div id="addToCart">addToCart</div>
+    <div class="ball-con">
+        <div class="ball"></div>
+    </div>
+</div>
+
+<script>
+    function getBezierPoint(start, end, current, total) {
+        const t = current / total;
+        const x = start.x + (end.x - start.x) * t;
+        const y = (end.y - start.y)  * t * t * ((1.5 + 1) * t - 1.70158) + start.y;
+        // const y = start.y + (end.y - start.y) * t - 0.5 * 9.5 * t * t;
+               
+        return { x, y };
+    }
+    function animate(start, end, parent,ball,total) {
+        const startTime = Date.now();
+        function frame() {
+            const current = Date.now() - startTime;
+            if (current > total) {
+                parent.style.transform = 'translateX( '+end.x+'px)';
+                ball.style.transform = 'translateY('+end.y+'px)';
+            } else {
+                const point = getBezierPoint(start, end, current, total);
+                parent.style.transform = 'translateX( '+point.x+'px)';
+                ball.style.transform = 'translateY( '+point.y+'px)';
+                requestAnimationFrame(frame);
+            }
+        }
+        frame();
+    }
+
+    document.getElementById('addToCart').addEventListener('click', function() {
+        const start = { x: 0, y: 0 };
+        const end = { x: 300, y: 50 };
+        const con = document.querySelector('.ball-con');
+        const ball = document.querySelector('.ball');
+        animate(start, end, con,ball, 500);
+    });
+</script>
+</body>
+</html>

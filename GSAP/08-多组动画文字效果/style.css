@@ -1,0 +1,68 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+html {
+    /* 计算方法 15/(1920/100) */
+    /* 默认15字体大小 */
+    /* 1920默认屏幕宽度 */
+    /* 100份 */
+    font-size: 0.78125vw !important;
+    overflow-x: hidden;
+}
+body {
+    height: 5000px;
+}
+
+/* 第一屏 */
+.screen {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+}
+.kv-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100vh;
+}
+.kv-content img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* 第二屏 */
+.summary-content {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 100%;
+    height: 100vh;
+    transform: translate(-50%, 0);
+}
+.summary-content video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.text1 {
+    position: absolute;
+    top: 60rem;
+    left: 21rem;
+    opacity: 0;
+    font-size: 4rem;
+    color: #fff;
+}
+.text2 {
+    position: absolute;
+    top: 29.26rem;
+    left: 29.33rem;
+    opacity: 0;
+    font-size: 8rem;
+    color: #fff;
+}

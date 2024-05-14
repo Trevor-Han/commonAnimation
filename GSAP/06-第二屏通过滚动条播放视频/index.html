@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html {
+                /* 计算方法 15/(1920/100) */
+                /* 默认15字体大小 */
+                /* 1920默认屏幕宽度 */
+                /* 100份 */
+                font-size: 0.78125vw !important;
+                overflow-x: hidden;
+            }
+
+            .screen1,
+            .screen2,
+            .screen3 {
+                width: 100%;
+                height: 100vh;
+                background-color: skyblue;
+            }
+            .screen2 {
+                position: relative;
+                background-color: rosybrown;
+            }
+            .screen2 video {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="screen1"></div>
+        <div class="screen2">
+            <video class="summary">
+                <source src="./flower.webm" type="video/webm" />
+            </video>
+        </div>
+        <div class="screen3"></div>
+
+        <script src="../js/gsap.min.js"></script>
+        <script src="../js/ScrollTrigger.min.js"></script>
+        <script>
+            ScrollTrigger.create({
+                // 触发元素第二屏
+                trigger: '.screen2',
+                // 起始位置
+                start: 'top top',
+                // 结束位置
+                end: '+=5000',
+                // 显示调试信息
+                markers: true,
+                // 让screen2改为固定定位
+                pin: true,
+                scrub: true,
+                // ScrollTrigger的进度更改时,会调用的回调
+                onUpdate(self) {
+                    const summary = document.querySelector('.summary')
+                    try {
+                        // 视频的播放进度随着滚动条变化
+                        // self.progress滚动进度
+                        // summary.duration视频总时长
+                        summary.currentTime = self.progress * summary.duration
+                    } catch (e) {
+                        console.log(e)
+                    }
+                },
+            })
+        </script>
+    </body>
+</html>

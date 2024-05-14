@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        @property --x{
+            syntax: '<length>';
+            initial-value: 0px;
+            inherits: false;
+        }
+        @property --y{
+            syntax: '<length>';
+            initial-value: 0px;
+            inherits: false;
+        }
+        @property --r{
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+        @property --r2{
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+        :root{
+            --x:0px;
+            --y:0px;
+            --r:0deg;
+            --r2:0deg
+        }
+        .ball{
+            z-index: 1000;
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: red;
+        }
+        .wirelessLoop{
+            transform: translate(var(--x),var(--y));
+            animation: x 2s, y 1s;
+            animation-timing-function: cubic-bezier(0.5, -800, 0.5, 800);
+            animation-iteration-count: infinite;
+        }
+        .flower{
+            transform: rotate(var(--r)) translate(var(--x));
+            animation: x 2s cubic-bezier(0.5, -800, 0.5, 800), r 8s linear;
+            animation-iteration-count: infinite;
+        }
+        .bee{
+            transform: rotate(var(--r2)) translate(var(--x));
+            animation: x 2s , r2 8s;
+            animation-timing-function: cubic-bezier(0.5, -800, 0.5, 800);
+            animation-iteration-count: infinite;
+        }
+        .butterfly{
+            transform: rotate(var(--r)) translate(var(--x));
+            animation: x 2s cubic-bezier(0.5, -800, 0.5, 800), r 4s linear;
+            animation-iteration-count: infinite;
+        }
+        @keyframes x{
+            to{
+                --x:1px
+            }
+        }
+        @keyframes y{
+            to{
+                --y:0.1px
+            }
+        }
+
+        @keyframes r{
+            to{
+                --r:360deg
+            }
+        }
+        @keyframes r2{
+            to{
+                --r2:1deg
+            }
+        }
+        /* 此处是小球运动时后面跟随的轨迹 */
+        #d{
+            position: absolute;
+            height: 100%;
+            width: 100%;
+        }
+        #d>div{
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: black;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+    </style>
+</head>
+<body>
+<div class="ball"></div>
+<div id="d"></div>
+<div class="but">
+    <button id="wirelessLoop">无限循环</button>
+    <button id="flower">鲜花</button>
+    <button id="bee">蜜蜂</button>
+    <button id="butterfly">蝴蝶</button>
+</div>
+
+</body>
+
+<script>
+    let ball = document.querySelector('.ball')
+    let b = document.getElementById('d')
+    let wirelessLoop = document.getElementById('wirelessLoop')
+    let flower = document.getElementById('flower')
+    let bee = document.getElementById('bee')
+    let butterfly = document.getElementById('butterfly')
+    let allButton = document.querySelector('.but').querySelectorAll('button')
+    //获取小球坐标
+    function getElementPosition(obj){
+        let theClient = obj.getBoundingClientRect();
+        let top2px = document.documentElement.clientTop;
+        let left2px = document.documentElement.clientLeft;
+        return {
+            y: theClient.top - top2px + 20,
+            x: theClient.left - left2px +20,
+        };
+    }
+
+    let position = getElementPosition(ball)
+    //绘制小球轨迹
+    let interval = ()=>{
+        let child = b.querySelectorAll('div').length
+        if(child >= 500) return clearInterval(time)
+        let position = getElementPosition(ball)
+        let div = document.createElement('div')
+        div.style.top = position.y + 'px'
+        div.style.left = position.x + 'px'
+        b.appendChild(div)
+    }
+    let time = setInterval(interval,25)
+
+    ball.classList.add('wirelessLoop')
+
+    function reset (){
+        ball.className = 'ball'
+        ball.offsetHeight;
+    }
+    let arr = ['wirelessLoop','flower','bee','butterfly']
+    for(let i = 0 ; i<=allButton.length-1;i++){
+        allButton[i].onclick = ()=>{
+            reset()
+            clearInterval(time)
+            b.innerHTML = ''
+            ball.className = 'ball ' +arr[i]
+            time = setInterval(interval,25)
+        }
+    }
+    //页面尺寸变化后重启动画
+    window.addEventListener('resize', function() {
+        reset()
+        clearInterval(time)
+        b.innerHTML = ''
+        ball.className = 'ball wirelessLoop'
+        time = setInterval(interval,25)
+    })
+
+</script>
+</html>
