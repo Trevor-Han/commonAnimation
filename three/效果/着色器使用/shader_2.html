@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+
+    //********************************↓COMMON↓***************************************
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls,material
+
+    const fov = 40
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 1000
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(0, 10, 15)
+    camera.lookAt(10,10, 10)
+
+    renderer = new THREE.WebGLRenderer({ canvas,antialias: true })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+    const clock = new THREE.Clock()
+    function renderLoop(){
+        material.uniforms.uTime.value = clock.getElapsedTime();
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+
+    // 顶点坐标 position、纹理坐标 uv、法线向量 normal都是顶点上的数据
+    // uniform修饰符->全局变量，在顶点着色器和片元着色器都可以访问（每个顶点或像素数值都相同时变量使用）
+    // attribute修饰符->局部变量，只能在顶点着色器中访问(加上，说明明这个数据是每个顶点上都不同的)
+    // varying修饰符 -> 用来在顶点着色器和片元着色器之间传递变量的(顶点着色器里的变量想在片元着色器里使用)
+
+    // 不同修饰符对应的变量所采用的命令方式，attribute 的用 a 开头如 aRadom，
+    // uniform 的用 u 开头如 uTime，
+    // varying 的用 v 开头如 vUv，这是比较直观的一种变量命名方式
+
+    const vertexShader = /* GLSL */ `
+      uniform float uTime;
+      varying vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        // 们需要知道将三维空间里的物体显示到二维屏幕上需要通过 MVP 矩阵变换操作，
+        // 即 Model 模型矩阵、View 视图矩阵和 Projection 投影矩阵（前俩者可以合并为 modelViewMatrix），
+        // 因此在顶点着色器里这一行代码是必不可少的
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    // fract实现重复
+    // step实现切分
+    // clamp(x, min, max) 将 x 值限制到 min-max 之间
+    const fragmentShader = /* GLSL */ `
+          varying vec2 vUv;
+
+          uniform float uTime;
+
+          void main() {
+              // 绘制渐变圆形
+              // float dist = length(vUv);
+              // vec3 color = vec3(dist);
+
+              // 绘制圆形
+              // float dist = length(vUv);
+              // vec3 color = vec3(step(0.5, dist));
+
+              // 先居中，再绘制圆形
+              // float dist = length(vUv - vec2(0.5));
+              // 先重复 uv，再居中，再绘制圆形
+              // float dist = length(fract(vUv * 5.0) - vec2(0.5));
+
+              // 先居中，后重复，再绘制圆形
+              float dist = fract((length(vUv - vec2(0.5)) /0.707 + uTime * 0.5) * 5.0);
+
+               float radius = 0.5;
+              // 半径大小随时间周期变化
+              // float radius = 0.5 * (sin(uTime) * 0.5 + 0.5);
+              // float radius = 0.5 * (sin(uTime + vUv.x + vUv.y) * 0.5 + 0.5);
+
+              vec3 color = vec3(step(radius, dist));
+              gl_FragColor = vec4(color, 1.0);
+          }
+`;
+
+    // const geometry = new THREE.PlaneGeometry(2, 2);
+    // const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const geometry = new THREE.SphereGeometry(2, 32, 16);
+    // const geometry = new THREE.ConeGeometry(2, 2, 16, 2);
+
+    material = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime: { value: 0 },
+        },
+        vertexShader,
+        fragmentShader,
+        // wireframe: true,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+
+</script>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+
+    //********************************↓COMMON↓***************************************
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls
+
+    const fov = 40
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 1000
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(0, 10, 15)
+    camera.lookAt(10,10, 10)
+
+    renderer = new THREE.WebGLRenderer({ canvas })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+
+    function renderLoop(){
+        const time = - performance.now() / 1000;
+        grid.position.z = - ( time ) % 1;
+        cube.rotation.x += 0.01;
+        cube.rotation.y += 0.01;
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+
+    const grid = new THREE.GridHelper( 20, 40, 0xffffff, 0xffffff );
+    grid.material.opacity = 0.2;
+    grid.material.depthWrite = false;
+    grid.material.transparent = true;
+    grid.position.y = -0.5
+    scene.add( grid );
+
+    const geometry = new THREE.BoxGeometry( 1, 1, 1 );
+    const material = new THREE.MeshBasicMaterial( { color: 0x00ff00,edgeEmissive: 0xff0000, edgeStrength: 2 } );
+    const cube = new THREE.Mesh( geometry, material );
+    scene.add( cube );
+
+    const box3 = new THREE.Box3().setFromObject(cube)
+    box3.expandByScalar(0.2)
+    const size = new THREE.Vector3()
+    const center = new THREE.Vector3()
+    box3.getCenter(center)
+    box3.getSize(size)
+
+    const box = new THREE.BoxGeometry(size.x, size.y, size.z);
+    const shaderMesh = new THREE.MeshBasicMaterial({color: 0xffffff});
+    const mesh = new THREE.Mesh( box, shaderMesh );
+    const BoxHelper = new THREE.BoxHelper( mesh, 0x5A92E7 );
+    scene.add( BoxHelper );
+
+
+
+
+</script>
+</html>
