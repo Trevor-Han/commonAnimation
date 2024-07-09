@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Su7</title>
+    <link rel="stylesheet/less" type="text/css" href="css/su7.less">
+    <link rel="stylesheet" href="css/dat.gui.css">
+    <script src="js/less.js"></script>
+    <script src="js/jquery-3.1.1.js"></script>
+    <script src="js/gsap/gsap.min.js"></script>
+    <script src="js/3d/dat.gui.js"></script>
+</head>
+<body>
+
+<!-- loading相关 -->
+<div class="loading-con">
+    <div class="loading">
+        <div class="loading-circle"></div>
+        <div class="progress"></div>
+    </div>
+    <div class="loading-complete display-none">
+        <p>
+            加载完成
+            <svg t="1677233206130" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2675" width="24" height="24"><path d="M537.6 102.4c73.5744 0 142.336 20.6848 200.704 56.576 15.872 9.6256 16.7936 23.1424 2.9696 40.5504-14.08 16.2816-43.008 13.2608-86.8352-9.216l-0.0512 0.0512a318.1568 318.1568 0 1 0 104.8064 524.3904h0.3584c19.456-26.7776 40.5504-40.192 63.1296-40.2432l6.8096 0.4096c24.064 4.4032 30.4128 16.6912 19.0464 36.864l0.2048-0.3584-0.1536 0.1536-0.0512 0.2048h-0.1024l-7.936 10.5984A384 384 0 1 1 537.6 102.4z m332.288 201.0112a33.28 33.28 0 0 1 0 47.104l-276.48 276.48a31.2832 31.2832 0 0 1-0.512 0.4608l-3.584 3.584a30.72 30.72 0 0 1-43.4176 0l-1.8432-1.792-0.4096-0.512-135.3216-135.2704a30.72 30.72 0 0 1 0-43.4176l3.584-3.584a30.72 30.72 0 0 1 43.4688 0l112.2304 112.128 255.232-255.1808a33.28 33.28 0 0 1 47.104 0z" fill="#ffffff" p-id="2676"></path></svg>
+        </p>
+    </div>
+</div>
+
+<section class="su7">
+    <div class="su7-con"></div>
+
+    <div class="buttons">
+        <div class="button-item" id="tunnel">Tunnel</div>
+        <div class="button-item" id="car-body">Body</div>
+        <div class="button-item" id="wind-drag">Wind Drag</div>
+<!--        <div class="button-item" id="radar">雷达</div>-->
+    </div>
+</section>
+
+</body>
+
+<script type="importmap">
+    {
+        "imports": {
+                "three": "./js/3d/three.module.js"
+        }
+    }
+</script>
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls }  from './js/3d/OrbitControls.js';
+    import resources from "./js/config/resources.js";
+    import Loader from './js/loaders/loadResource.js'
+    import {vertexShader as vertexShaderSeep } from "./js/shaders/seep/vertex.js";
+    import {fragmentShader as fragmentShaderSeep } from "./js/shaders/seep/fragment.js";
+    import {vertexShader as dynamicEnvVertexShader } from "./js/shaders/DynamicEnv/vert.js";
+    import {fragmentShader as dynamicEnvFragmentShader } from "./js/shaders/DynamicEnv/frag.js";
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const loader = new Loader()
+    const buttonMap = {
+        tunnel: '1',
+        body: '2',
+        windDrag: '3',
+        radar: '4'
+    }
+
+    const scene = new THREE.Scene();
+    const clock = new THREE.Clock();
+
+    const group = new THREE.Group();
+
+    let fovDefault = 60;
+    let fovTarget = 75;
+    let curWheelRot = 0;
+    let wheelRotSpeed = 0.4;
+    let buttonSelect = buttonMap.tunnel
+    let mixer;
+    let isRadar = false;
+    let runTunnel = false;
+    let nameToMeshDic = {};
+    let loadMap = {};
+    let hemisphereLight, dLight, groundLoader, cubeRenderTarget, cubeCamera;
+
+    const wheel = {
+        wheel_back_right: null,
+        wheel_back_left: null,
+        wheel_front_right: null,
+        wheel_front_left: null
+    }
+
+    const camera = new THREE.PerspectiveCamera( fovDefault, width / height, 0.1, 500 );
+    camera.position.set( 1.53,  3.78, -1.46);
+
+    scene.background = new THREE.Color( 0x000000 );
+    scene.fog = new THREE.Fog( 0x000000, 4, 40 );
+
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize( width, height );
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    $('.su7-con').append( renderer.domElement );
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024);
+    cubeRenderTarget.texture.type = THREE.UnsignedByteType;
+    cubeCamera = new THREE.CubeCamera(0.1, 200, cubeRenderTarget);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target = new THREE.Vector3(0, 1, 0);
+
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    // controls.enableZoom = false;
+    //
+    // controls.enablePan = false;
+    //
+    // controls.maxDistance = 3.5;
+    // controls.minDistance = 3.5;
+
+    controls.minPolarAngle = 0.1;
+    controls.maxPolarAngle = Math.PI / 2;
+
+    loader.load(resources)
+
+    loader.onFileLoaded((name,res) => {
+        const result = loaderCustom(name)(res)
+        if (!['sceneLoad','env_night','env_light'].includes(name)){
+            scene.add(result)
+        }
+        loadMap[name] = result
+
+        const value = loader.totalSuccess / loader.total * 100
+        progressText(value)
+    })
+
+    loader.onLoadEnd(()=>{
+        // initHemisphereLight();
+        // initLight();
+
+        buttOnClick();
+
+        setTimeout(()=>{
+            intoScene()
+        },1000)
+    })
+
+    // 处理模型
+    function loaderCustom(type){
+        const StrategyMap = {
+            'sceneLoad': (texture)=>{
+                   // scene.background = texture;
+                   //  scene.environment = texture;
+                    // texture.mapping = THREE.EquirectangularReflectionMapping;
+                    // texture.mapping = THREE.CubeUVReflectionMapping;
+            },
+            'roadMesh': (banMa)=>{
+                banMa.wrapS = THREE.RepeatWrapping;
+                banMa.wrapT = THREE.RepeatWrapping;
+                banMa.repeat.set(1, 6);
+
+                const PlaneGeometry =  new THREE.PlaneGeometry(100,15)
+                const MeshStandardMaterial =  new THREE.MeshStandardMaterial({
+                    map:banMa,
+                    color: '#343434'
+                })
+                const roadMesh = new THREE.Mesh(
+                    PlaneGeometry,
+                    MeshStandardMaterial
+                )
+                roadMesh.rotation.x = - Math.PI / 2;
+                roadMesh.position.y = -0.1;
+                return roadMesh
+            } ,
+            'carLoad': (gltf)=>{
+                gltf.scene.traverse((child)=>{
+                    nameToMeshDic['car'] = child
+                    if(child.name === 'radar'){
+                        nameToMeshDic[child.name] = child
+                    }
+                    if (child.name === 'topLigt'){
+                        nameToMeshDic[child.name] = child
+                        // child.visible = false
+                    }
+                    if(['wheel_back_right','wheel_back_left','wheel_front_right','wheel_front_left'].includes(child.name)){
+                        wheel[child.name] = child
+                    }
+
+                    if (child.name === '平面'){
+                        child.material.envMap = cubeRenderTarget.texture;
+                        child.material.normalMap = new THREE.TextureLoader().load('./img/t_floor_normal.webp')
+                        groundLoader = child
+                    }
+
+                    if (child.type === 'Mesh'){
+                        child.material.envMap = cubeRenderTarget.texture;
+                        child.material.envMapIntensity = 5;
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+
+                })
+                return gltf.scene
+            },
+            'tunnelLoader': (gltf)=>{
+                gltf.scene.traverse((child)=>{
+                    nameToMeshDic['tunnel'] = child
+                    if (child.type === 'Mesh'){
+                        // child.material.opacity = 0
+                        child.material = new THREE.ShaderMaterial({
+                            transparent: true,
+                            side: THREE.DoubleSide,
+                            vertexShader:vertexShaderSeep,
+                            fragmentShader: fragmentShaderSeep,
+                            uniforms: {
+                                uOpacity: { value: 0.0 },
+                                uSpeed: {value:  0.0 },
+                                iTime: {value:  0.0 },
+                            },
+                        });
+                        nameToMeshDic['tunnelOpacity'] = child
+                    }
+                })
+                return gltf.scene
+            },
+        }
+        return StrategyMap[type]
+    }
+
+    function updateLoadingProgress(progress,loading_text){
+        progress && (progress.textContent = loading_text);
+    }
+    function progressText(percent){
+        const text =  `加载场景模型: ${parseInt(percent)} %`
+        const progress = document.querySelector('.progress')
+
+        updateLoadingProgress(progress, text)
+
+    }
+
+    function intoScene(){
+        const loading_complete = document.querySelector('.loading-complete')
+        const loading_con = document.querySelector('.loading-con')
+        loading_complete.classList.remove("display-none");
+        loading_con.classList.add("hide-loading");
+
+        loading_con.addEventListener('animationend', function() {
+            loading_con.classList.add("display-none")
+        });
+        gsap.to(camera.position,{
+            x: -0.25,
+            y: 1,
+            z: -3.49,
+            duration: 1,
+            ease: 'power5.inOut'
+        })
+
+    }
+
+    function initHemisphereLight () {
+        hemisphereLight = new THREE.HemisphereLight( '#ffffff', '#444444', 2 );
+        hemisphereLight.position.set( 0, 20, 0 );
+        scene.add( hemisphereLight );
+
+
+        const light =  new THREE.DirectionalLight(0xffffff,1);
+        light.position.set(0,0,10);
+        scene.add( light );
+
+        const light1 =  new THREE.DirectionalLight(0xffffff,1);
+        light.position.set(0,0,-10);
+        scene.add( light1 );
+
+    }
+
+    function initLight(){
+        dLight = new THREE.DirectionalLight( '#ffffff', 4 );
+        dLight.position.set( 0, 5, -5 );
+        dLight.castShadow = true;
+        dLight.shadow.camera.top = 2;
+        dLight.shadow.camera.bottom = - 2;
+        dLight.shadow.camera.left = - 2;
+        dLight.shadow.camera.right = 2;
+        scene.add( dLight );
+
+    }
+
+    function buttOnClick(){
+        const tunnel = document.getElementById('tunnel');
+        tunnel.onclick = function (){
+            recoverState()
+            buttonSelect = buttonMap.tunnel
+        }
+    }
+
+    function carWheelForward(){
+        const car = nameToMeshDic['car']
+        car.userData['tween_wheel_front_left'] && car.userData['tween_wheel_front_left'].kill()
+        car.userData['tween_wheel_front_right'] && car.userData['tween_wheel_front_right'].kill()
+        car.userData['tween_wheel_back_left'] && car.userData['tween_wheel_back_left'].kill()
+        car.userData['tween_wheel_back_right'] && car.userData['tween_wheel_back_right'].kill()
+
+        car.userData['tween_wheel_front_left'] = gsap.to(wheel['wheel_front_left'].rotation, {
+            y: curWheelRot - 4 * Math.PI,
+            duration: 1,
+            ease: 'power1.in',
+            onUpdate: () => {
+                curWheelRot = wheel['wheel_front_left'].rotation.y;
+            },
+            onComplete: () => {
+                car.userData['tween_wheel_front_left'].kill()
+                car.userData['tween_wheel_front_left'] = gsap.to(wheel['wheel_front_left'].rotation, {
+                    y: curWheelRot - 2 * Math.PI,
+                    duration: wheelRotSpeed,
+                    repeat: -1,
+                    ease: 'none',
+                });
+            }
+        });
+
+    }
+    window.addEventListener('mousedown',(e)=>{
+        if (!(e.target instanceof HTMLCanvasElement)){
+            return
+        }
+        if (e.button === 0) {
+            if (buttonSelect === buttonMap.tunnel){
+                const tunnel = nameToMeshDic['tunnel']
+
+                runTunnel = true
+                nameToMeshDic['topLigt'].visible = false
+                nameToMeshDic['cameraTween'] && nameToMeshDic['cameraTween'].kill()
+                tunnel.userData['tunnelTween'] && tunnel.userData['tunnelTween'].kill()
+                tunnel.userData['tunnelOpacityTween'] && tunnel.userData['tunnelOpacityTween'].kill()
+                tunnel.userData['tunnelTweenSeep'] &&  tunnel.userData['tunnelTweenSeep'].kill()
+
+                nameToMeshDic['cameraTween'] = gsap.to(camera, {
+                    fov: fovTarget,
+                    duration: 1,
+                    repeat: 0,
+                    ease: 'power5.inOut',
+                    onUpdate: () => {
+                        camera.updateProjectionMatrix();
+                    }
+                });
+
+                tunnel.userData['tunnelTween'] = gsap.to(tunnel.material,{
+                    opacity: 1,
+                    duration: 2,
+                    repeat: 0,
+                    ease: "power2.out",
+                    onUpdate: () => {
+                        nameToMeshDic['tunnelOpacity'].material.uniforms.uOpacity.value =
+                            tunnel.material.opacity
+                    },
+                })
+                tunnel.userData['tunnelTweenSeep'] = gsap.to( nameToMeshDic['tunnelOpacity'].material.uniforms.iTime, {
+                    value: 20,
+                    duration: 2,
+                    repeat: -1,
+                    ease: "none",
+                });
+
+                tunnel.userData['tunnelOpacityTween'] = gsap.to(tunnel.material, {
+                    opacity: 1,
+                    duration: 2,
+                    repeat: 0,
+                    ease: 'none'
+                });
+
+                carWheelForward()
+            }
+        }
+
+    })
+
+    window.addEventListener('mouseup',(e)=>{
+        if (!(e.target instanceof HTMLCanvasElement)){
+            return
+        }
+        if (e.button === 0){
+            if (buttonSelect === buttonMap.tunnel){
+                const tunnel = nameToMeshDic['tunnel']
+
+                runTunnel = false
+                nameToMeshDic['cameraTween'] && nameToMeshDic['cameraTween'].kill()
+                tunnel.userData['tunnelTweenSeep'] &&  tunnel.userData['tunnelTweenSeep'].kill()
+
+                nameToMeshDic['cameraTween'] = gsap.to(camera, {
+                    fov: fovDefault,
+                    duration: 1,
+                    repeat: 0,
+                    ease: 'power5.inOut',
+                    onUpdate: () => {
+                        camera.updateProjectionMatrix();
+                    }
+                });
+                tunnel.userData['tunnelOpacityTween'] = gsap.to(tunnel.material, {
+                    opacity: 0,
+                    repeat: 0,
+                    duration: 1,
+                    ease: 'none',
+                    onUpdate: () => {
+                        nameToMeshDic['tunnelOpacity'].material.uniforms.uOpacity.value =
+                            tunnel.material.opacity
+                    },
+                    onComplete: () => {
+                        nameToMeshDic['topLigt'].visible = true
+                        tunnel.userData['tunnelTween'] && tunnel.userData['tunnelTween'].kill()
+                        tunnel.userData['tunnelOpacityTween'] && tunnel.userData['tunnelOpacityTween'].kill()
+                    }
+                });
+
+                // tunnel.userData['tunnelTweenSeep'] = gsap.to(nameToMeshDic['tunnelOpacity'].material.uniforms.iTime, {
+                //     value: 10,
+                //     duration: 4,
+                //     ease: "none",
+                // });
+            }
+        }
+
+    })
+
+    // 重置所有场景
+    function recoverState(){
+        nameToMeshDic['cameraToRadar'] && nameToMeshDic['cameraToRadar'].kill();
+        nameToMeshDic['controlsTween'] && nameToMeshDic['controlsTween'].kill();
+
+        isRadar = false;
+        nameToMeshDic['cameraOutRadar'] = gsap.to(camera.position,{
+            x: -0.25,
+            y: 1,
+            z: -3.49,
+            duration: 1
+        })
+        nameToMeshDic['controlsTween'] = gsap.to(controls,{
+            maxDistance: 3.5,
+            minDistance: 3.5,
+            duration: 1,
+            repeat: 0,
+            ease: 'power5.inOut',
+            onUpdate: () => {
+                camera.updateProjectionMatrix();
+            }
+        })
+    }
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+
+    function renderLoop(){
+        if (groundLoader && buttonSelect !== buttonMap.radar){
+            groundLoader.visible = false;
+            cubeCamera.position.copy(camera.position);
+            cubeCamera.position.y *= -1;
+            cubeCamera.update(renderer,scene);
+            groundLoader.visible = true;
+        }
+
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+</script>
+</html>
