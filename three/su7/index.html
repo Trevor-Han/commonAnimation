@@ -52,6 +52,7 @@
     import resources from "./js/config/resources.js";
     import Loader from './js/loaders/loadResource.js'
     import CameraShake from  './js/config/CameraShake.js'
+    import DynamicEnv from  './js/config/DynamicEnv.js'
     import {vertexShader as vertexShaderSeep } from "./js/shaders/seep/vertex.js";
     import {fragmentShader as fragmentShaderSeep } from "./js/shaders/seep/fragment.js";
     import {vertexShader as dynamicEnvVertexShader } from "./js/shaders/DynamicEnv/vert.js";
@@ -76,10 +77,12 @@
     let fovTarget = 75;
     let curWheelRot = 0;
     let wheelRotSpeed = 0.4;
+    let uSeep = 0.0;
     let buttonSelect = buttonMap.tunnel
     let mixer;
     let isRadar = false;
     let runTunnel = false;
+    let isMouseDown = false;
     let nameToMeshDic = {};
     let loadMap = {};
     let hemisphereLight, dLight, groundLoader, cubeRenderTarget, cubeCamera;
@@ -135,6 +138,9 @@
     cameraShake.setIntensity(0);
     camera.cameraShakeIntensity = 0
 
+    let envmap1,envmap2;
+    let dynamicEnv
+
     loader.load(resources)
 
     loader.onFileLoaded((name,res) => {
@@ -155,6 +161,16 @@
         buttOnClick();
 
         setTimeout(()=>{
+            if (envmap1 && envmap1){
+                dynamicEnv = new DynamicEnv(renderer,{
+                    envmap1,
+                    envmap2,
+                });
+                scene.background = dynamicEnv.envMap;
+                scene.environment = dynamicEnv.envMap;
+                dynamicEnv.setWeight(1);
+            }
+
             intoScene()
         },1000)
     })
@@ -163,36 +179,15 @@
     function loaderCustom(type){
         const StrategyMap = {
             'env_night':(texture) =>{
-                // texture.mapping = THREE.CubeUVReflectionMapping;
-                // const material = new THREE.ShaderMaterial({
-                //     vertexShader: dynamicEnvVertexShader,
-                //     fragmentShader: dynamicEnvFragmentShader,
-                //     uniforms: {
-                //         uEnvmap1: {
-                //             value: texture,
-                //         },
-                //         uEnvmap2: {
-                //             value: texture,
-                //         },
-                //         uWeight: {
-                //             value: 0,
-                //         },
-                //         uIntensity: {
-                //             value: 1,
-                //         },
-                //     },
-                // });
-                //
-                // renderer.setRenderTarget(renderTarget);
-                // renderer.render(scene, camera);
-                // renderer.setRenderTarget(null);
-                //
-                // scene.environment = renderTarget.texture;
+                envmap1 = texture
+            },
+            'env_light':(texture) =>{
+                envmap2 = texture
             },
             'sceneLoad': (texture)=>{
                    // scene.background = texture;
                    //  scene.environment = texture;
-                    // texture.mapping = THREE.EquirectangularReflectionMapping;
+                   //  texture.mapping = THREE.EquirectangularReflectionMapping;
                     // texture.mapping = THREE.CubeUVReflectionMapping;
             },
             'roadMesh': (banMa)=>{
@@ -214,12 +209,9 @@
                 return roadMesh
             } ,
             'carLoad': (gltf)=>{
+                nameToMeshDic['car'] = gltf.scene
                 gltf.scene.traverse((child)=>{
-                    nameToMeshDic['car'] = child
-                    if(child.name === 'radar'){
-                        nameToMeshDic[child.name] = child
-                    }
-                    if (child.name === 'topLigt'){
+                    if (['topLigt','radar','empennage'].includes(child.name)){
                         nameToMeshDic[child.name] = child
                         // child.material.emissiveIntensity = 0
                         // child.visible = false
@@ -248,7 +240,7 @@
                 gltf.scene.traverse((child)=>{
                     nameToMeshDic['tunnel'] = child
                     if (child.type === 'Mesh'){
-                        child.material.opacity = 0
+                        // child.material.opacity = 0
                         child.material = new THREE.ShaderMaterial({
                             transparent: true,
                             side: THREE.DoubleSide,
@@ -293,8 +285,11 @@
             x: -0.25,
             y: 1,
             z: -3.49,
-            duration: 3,
+            duration: 2,
             ease: 'power5.inOut',
+            onUpdate:()=>{
+                dynamicEnv.setIntensity(camera.position.y)
+            }
         })
 
     }
@@ -394,16 +389,20 @@
         }
         if (e.button === 0) {
             if (buttonSelect === buttonMap.tunnel){
+                const tunnel = nameToMeshDic['tunnel']
+                const car = nameToMeshDic['car']
+
                 nameToMeshDic['tunnelOpacity'].material.uniforms.iTime.value = 0.0
                 nameToMeshDic['topLigt'].material.emissiveIntensity = 0
-                const tunnel = nameToMeshDic['tunnel']
 
                 runTunnel = true
+                isMouseDown = true
                 nameToMeshDic['topLigt'].visible = false
                 nameToMeshDic['cameraTween'] && nameToMeshDic['cameraTween'].kill()
                 nameToMeshDic['cameraShakeTween'] && nameToMeshDic['cameraShakeTween'].kill()
                 tunnel.userData['tunnelTween'] && tunnel.userData['tunnelTween'].kill()
-                tunnel.userData['tunnelTweenSeep'] &&  tunnel.userData['tunnelTweenSeep'].kill()
+                car.userData['empennagePosTween'] &&  car.userData['empennagePosTween'].kill()
+                car.userData['empennageRosTween'] &&  car.userData['empennageRosTween'].kill()
 
                 nameToMeshDic['cameraTween'] = gsap.to(camera, {
                     fov: fovTarget,
@@ -416,32 +415,43 @@
                     }
                 });
 
-                tunnel.userData['tunnelTween'] = gsap.to(tunnel.material,{
-                    opacity: 1,
-                    duration: 2,
-                    repeat: 0,
-                    ease: "power2.out",
-                    onUpdate: () => {
-                        nameToMeshDic['tunnelOpacity'].material.uniforms.uOpacity.value = tunnel.material.opacity
-                    }
-                })
-                tunnel.userData['tunnelTweenSeep'] = gsap.to( nameToMeshDic['tunnelOpacity'].material.uniforms.iTime, {
-                    value: 12,
-                    duration: 2,
-                    repeat: -1,
-                    ease: "none"
-                });
                 nameToMeshDic['cameraShakeTween'] = gsap.to(camera, {
                     cameraShakeIntensity: 1,
-                    duration: 1,
+                    duration:4,
                     repeat: -1,
                     ease: "power2.out",
                     onUpdate:()=>{
-                        cameraShake.update();
-                        cameraShake.setIntensity(camera.cameraShakeIntensity);
                         camera.position.add(cameraShake.tweenedPosOffset);
+                        cameraShake.setIntensity(camera.cameraShakeIntensity);
+                        cameraShake.update();
                     }
                 });
+
+
+                tunnel.userData['tunnelTween'] = gsap.to(tunnel.material,{
+                    opacity: 1,
+                    duration: 3,
+                    repeat: 0,
+                    ease: "power2.out",
+                    onUpdate: () => {
+                        dynamicEnv.setIntensity(1 - tunnel.material.opacity)
+                        uSeep = tunnel.material.opacity / 10
+                        nameToMeshDic['tunnelOpacity'].material.uniforms.uOpacity.value = tunnel.material.opacity
+                    }
+                })
+
+                car.userData['empennagePosTween'] = gsap.to(nameToMeshDic['empennage'].position,{
+                    x: -0.42,
+                    y: 236.14,
+                    z: -107.97,
+                    duration: 2,
+                    repeat: 0,
+                })
+                car.userData['empennageRosTween'] = gsap.to(nameToMeshDic['empennage'].rotation,{
+                    x: -0.189,
+                    repeat: 0,
+                    duration: 2,
+                })
 
                 carWheelForward()
             }
@@ -456,16 +466,18 @@
         if (e.button === 0){
             if (buttonSelect === buttonMap.tunnel){
                 const tunnel = nameToMeshDic['tunnel']
+                const car = nameToMeshDic['car']
 
                 runTunnel = false
                 nameToMeshDic['cameraTween'] && nameToMeshDic['cameraTween'].kill()
                 nameToMeshDic['cameraShakeTween'] && nameToMeshDic['cameraShakeTween'].kill()
+                car.userData['empennagePosTween'] &&  car.userData['empennagePosTween'].kill()
+                car.userData['empennageRosTween'] &&  car.userData['empennageRosTween'].kill()
                 tunnel.userData['tunnelTween'] &&  tunnel.userData['tunnelTween'].kill()
-                tunnel.userData['tunnelTweenSeep'] &&  tunnel.userData['tunnelTweenSeep'].kill()
 
                 nameToMeshDic['cameraTween'] = gsap.to(camera, {
                     fov: fovDefault,
-                    duration: 1,
+                    duration: 2,
                     repeat: 0,
                     ease: 'power5.inOut',
                     onUpdate: () => {
@@ -482,15 +494,27 @@
                             nameToMeshDic['topLigt'].visible = true
                             nameToMeshDic['topLigt'].material.emissiveIntensity = 1 - tunnel.material.opacity
                         }
+                        dynamicEnv.setIntensity(1 - tunnel.material.opacity)
+                        uSeep = tunnel.material.opacity / 10
                         nameToMeshDic['tunnelOpacity'].material.uniforms.uOpacity.value = tunnel.material.opacity
                     },
+                    onComplete: ()=>{
+                        isMouseDown = false
+                    }
                 });
+                car.userData['empennagePosTween'] = gsap.to(nameToMeshDic['empennage'].position,{
+                    x: 0.735,
+                    y: 230.15,
+                    z: -97.55,
+                    duration: 2,
+                    repeat: 0,
+                })
+                car.userData['empennageRosTween'] = gsap.to(nameToMeshDic['empennage'].rotation,{
+                    x: 0,
+                    repeat: 0,
+                    duration: 2,
+                })
 
-                tunnel.userData['tunnelTweenSeep'] = gsap.to(nameToMeshDic['tunnelOpacity'].material.uniforms.iTime, {
-                    value: 10,
-                    duration: 4,
-                    ease: "none",
-                });
                 carWheelStop()
             }
         }
@@ -536,6 +560,9 @@
             cubeCamera.position.y *= -1;
             cubeCamera.update(renderer,scene);
             groundLoader.visible = true;
+        }
+        if ( nameToMeshDic['tunnelOpacity'] && isMouseDown){
+            nameToMeshDic['tunnelOpacity'].material.uniforms.iTime.value+= uSeep
         }
 
         renderer.setSize( window.innerWidth, window.innerHeight );

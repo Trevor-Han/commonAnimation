@@ -1,7 +1,8 @@
 import * as THREE from "../3d/three.module.js";
 import {vertexShader as dynamicEnvVertexShader } from "../shaders/DynamicEnv/vert.js";
 import {fragmentShader as dynamicEnvFragmentShader } from "../shaders/DynamicEnv/frag.js";
-import FullScreenQuad from "./FullScreenQuad.js";
+import {FullScreenQuad} from '../postprocessing/Pass.js'
+
 import FBO from "./FBO.js";
 
 export default class DynamicEnv{
@@ -16,7 +17,7 @@ export default class DynamicEnv{
             width: envData.width,
             height: envData.height,
         });
-        this.envMap.mapping = THREE.EquirectangularReflectionMapping;
+        this.envMap.mapping = THREE.CubeUVReflectionMapping;
 
         this.material = new THREE.ShaderMaterial({
             vertexShader: dynamicEnvVertexShader,
@@ -43,15 +44,16 @@ export default class DynamicEnv{
     get envMap() {
         return this.fbo.rt.texture;
     }
-    update(renderer) {
-        renderer.setRenderTarget(this.fbo);
-        this.quad.render(renderer);
-        renderer.setRenderTarget(null);
+    update() {
+        this.renderer.setRenderTarget(this.fbo.rt);
+        this.quad.render(this.renderer);
+        this.renderer.setRenderTarget(null);
     }
     setWeight(value) {
         this.material.uniforms.uWeight.value = value;
     }
     setIntensity(value) {
         this.material.uniforms.uIntensity.value = value;
+        this.update()
     }
 }

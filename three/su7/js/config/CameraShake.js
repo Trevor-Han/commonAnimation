@@ -11,7 +11,8 @@ const fbm = ({
              } = {}) => {
     let value = 0;
     for (let i = 0; i < octave; i++) {
-        const noiseValue = simplex.noise(frequency, frequency);
+        const noiseValue = simplex.noise(frequency, frequency); // 升高频率，降低振幅
+        // 增加噪声值，使其更加明显
         value += noiseValue * amplitude;
         frequency *= lacunarity;
         amplitude *= persistance;
@@ -40,6 +41,7 @@ export default class CameraShake{
                 amplitude: 2,
             })
         );
+
         posOffset.multiplyScalar(0.1 * this.intensity);
         gsap.to(this.tweenedPosOffset, {
             x: posOffset.x,

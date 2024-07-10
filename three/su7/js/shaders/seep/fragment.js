@@ -69,21 +69,22 @@ export const fragmentShader = /* GLSL */ `
                     vec3 col=vec3(1.0);
                     float mask = 1.0;
 
-                    noiseUv.x += -iTime *.1;
-                    float noiseValue = noise( noiseUv * vec2(3.0,100.0));
+                    noiseUv.x += -iTime *.1; // 位置偏移
+                    // float noiseValue=noise(noiseUv*vec2(100.)); // 应用噪声
+                    float noiseValue = noise( noiseUv * vec2(3.0,100.0)); // 线条拉长
                     mask = noiseValue;
                      // value(mask), inMin(-1.), inMax(1.), outMin(0.), outMax(1.)
                     // mask ,-1., 1., 0. ,1. outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
-                    mask = 1.0 * (mask +1.0 ) / 2.0;
+                    mask = 1.0 * (mask +1.0 ) / 2.0; // 把值域映射到[0,1]
                     // mask=pow(mask,5.);
-                    mask = pow(clamp(mask, 0.0, 1.0),13.0);
-                    mask = smoothstep(0.0,0.06, mask);
+                    mask = pow(clamp(mask-0.03, 0.0, 1.0),13.0); // 调整线条多少和线条大小
+                    mask = smoothstep(0.0,0.06, mask); // 平滑线条，让线条清晰
 
-                    col=colorNoise(noiseUv*vec2(10.,100.));
+                    col=colorNoise(noiseUv*vec2(10.,100.)); // 产生随机颜色
                     col*=vec3(1.5,1.,400.);
                     // mask=1.;
 
-                    mask *= smoothstep(.02,0.6,uv.x) * smoothstep(.02,0.6,1.-uv.x);
+                    mask *= smoothstep(.02,0.6,uv.x) * smoothstep(.02,0.6,1.-uv.x); // 虚化线条两边的颜色
                      // mask*=smoothstep(1.,10.,uSpeed);
 
 
