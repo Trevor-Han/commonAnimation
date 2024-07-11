@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+    import { GLTFLoader }  from '../../loaders/GLTFLoader.js';
+    import { RGBELoader } from '../../loaders/RGBELoader.js';
+
+    //********************************↓COMMON↓***************************************
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls
+
+    const fov = 40
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 1000
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('black')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(0, 10, 15)
+    camera.lookAt(10,10, 10)
+
+    renderer = new THREE.WebGLRenderer({ canvas })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+
+    function renderLoop(){
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+    const gltfLoader = new GLTFLoader()
+    const rgbeLoader = new RGBELoader()
+
+    gltfLoader.load('../../su7/models/gltf/su7-car_edit.glb',(gltf)=>{
+        scene.add(gltf.scene)
+    })
+
+    const pmremGenerator = new THREE.PMREMGenerator( renderer );
+    const sceneEnv = new THREE.Scene();
+
+    let renderTarget;
+
+    if ( renderTarget !== undefined ) renderTarget.dispose();
+
+    rgbeLoader.load('../../su7/models/t_env_light.hdr',(rgb)=>{
+
+        sceneEnv.background = rgb;
+        renderTarget = pmremGenerator.fromScene( sceneEnv );
+        sceneEnv.background = null;
+
+        scene.environment = renderTarget.texture;
+    })
+
+
+
+
+
+
+</script>
+</html>

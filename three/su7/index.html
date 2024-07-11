@@ -94,8 +94,9 @@
         wheel_front_left: null
     }
 
-    const camera = new THREE.PerspectiveCamera( fovDefault, width / height, 0.1, 500 );
-    camera.position.set( 1.53,  3.78, -1.46);
+    const camera = new THREE.PerspectiveCamera( fovTarget, width / height, 0.1, 500 );
+    camera.position.set( -0.1072,  1, -3.4973);
+    camera.uIntensity = 0
 
     scene.background = new THREE.Color( 0x000000 );
     scene.fog = new THREE.Fog( 0x000000, 4, 40 );
@@ -109,6 +110,8 @@
     renderer.setAnimationLoop(renderLoop);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
     $('.su7-con').append( renderer.domElement );
 
 
@@ -216,6 +219,9 @@
                         // child.material.emissiveIntensity = 0
                         // child.visible = false
                     }
+                    if (child.name === 'topLigt'){
+                        child.material.emissiveIntensity = 0
+                    }
                     if(['wheel_back_right','wheel_back_left','wheel_front_right','wheel_front_left'].includes(child.name)){
                         wheel[child.name] = child
                     }
@@ -223,6 +229,18 @@
                     if (child.name === '平面'){
                         child.material.envMap = cubeRenderTarget.texture;
                         child.material.normalMap = new THREE.TextureLoader().load('./img/t_floor_normal.webp')
+                        child.material.roughnessMap = new THREE.TextureLoader().load('./img/t_floor_roughness.webp')
+
+                        child.material.normalMap.flipY = false
+                        child.material.normalMap.colorSpace = THREE.LinearSRGBColorSpace
+                        child.material.normalMap.wrapS = THREE.RepeatWrapping
+                        child.material.normalMap.wrapS = THREE.RepeatWrapping
+
+                        child.material.roughnessMap.flipY = false
+                        child.material.roughnessMap.colorSpace = THREE.LinearSRGBColorSpace
+                        child.material.roughnessMap.wrapS = THREE.RepeatWrapping
+                        child.material.roughnessMap.wrapS = THREE.RepeatWrapping
+
                         groundLoader = child
                     }
 
@@ -281,14 +299,15 @@
         loading_con.addEventListener('animationend', function() {
             loading_con.classList.add("display-none")
         });
-        gsap.to(camera.position,{
-            x: -0.25,
-            y: 1,
-            z: -3.49,
+        gsap.to(camera,{
+            fov: fovDefault,
+            uIntensity: 1,
             duration: 2,
-            ease: 'power5.inOut',
+            ease: 'power2.out',
             onUpdate:()=>{
-                dynamicEnv.setIntensity(camera.position.y)
+                dynamicEnv.setIntensity(camera.uIntensity)
+                nameToMeshDic['topLigt'].material.emissiveIntensity = camera.uIntensity
+                camera.updateProjectionMatrix();
             }
         })
 
@@ -554,7 +573,7 @@
     }
 
     function renderLoop(){
-        if (groundLoader && buttonSelect !== buttonMap.radar){
+        if (groundLoader){
             groundLoader.visible = false;
             cubeCamera.position.copy(camera.position);
             cubeCamera.position.y *= -1;
