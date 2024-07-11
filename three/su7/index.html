@@ -171,13 +171,35 @@
                 });
                 scene.background = dynamicEnv.envMap;
                 scene.environment = dynamicEnv.envMap;
-                dynamicEnv.setWeight(1);
+                dynamicEnv.setWeight(0);
             }
 
             intoScene()
         },1000)
     })
+    function intoScene(){
+        const loading_complete = document.querySelector('.loading-complete')
+        const loading_con = document.querySelector('.loading-con')
+        loading_complete.classList.remove("display-none");
+        loading_con.classList.add("hide-loading");
 
+        loading_con.addEventListener('animationend', function() {
+            loading_con.classList.add("display-none")
+        });
+        gsap.to(camera,{
+            fov: fovDefault,
+            uIntensity: 1,
+            duration: 2,
+            ease: 'power2.out',
+            onUpdate:()=>{
+                dynamicEnv.setIntensity(camera.uIntensity)
+                dynamicEnv.setWeight(camera.uIntensity)
+                nameToMeshDic['topLigt'].material.emissiveIntensity = camera.uIntensity
+                camera.updateProjectionMatrix();
+            }
+        })
+
+    }
     // 处理模型
     function loaderCustom(type){
         const StrategyMap = {
@@ -290,28 +312,6 @@
 
     }
 
-    function intoScene(){
-        const loading_complete = document.querySelector('.loading-complete')
-        const loading_con = document.querySelector('.loading-con')
-        loading_complete.classList.remove("display-none");
-        loading_con.classList.add("hide-loading");
-
-        loading_con.addEventListener('animationend', function() {
-            loading_con.classList.add("display-none")
-        });
-        gsap.to(camera,{
-            fov: fovDefault,
-            uIntensity: 1,
-            duration: 2,
-            ease: 'power2.out',
-            onUpdate:()=>{
-                dynamicEnv.setIntensity(camera.uIntensity)
-                nameToMeshDic['topLigt'].material.emissiveIntensity = camera.uIntensity
-                camera.updateProjectionMatrix();
-            }
-        })
-
-    }
 
     function initHemisphereLight () {
         hemisphereLight = new THREE.HemisphereLight( '#ffffff', '#444444', 2 );

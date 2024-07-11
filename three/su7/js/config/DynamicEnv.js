@@ -30,10 +30,10 @@ export default class DynamicEnv{
                     value: envmap2,
                 },
                 uWeight: {
-                    value: 0,
+                    value: 0.0,
                 },
                 uIntensity: {
-                    value: 1,
+                    value: 0.0,
                 },
             },
         });
@@ -51,6 +51,7 @@ export default class DynamicEnv{
     }
     setWeight(value) {
         this.material.uniforms.uWeight.value = value;
+        this.update()
     }
     setIntensity(value) {
         this.material.uniforms.uIntensity.value = value;

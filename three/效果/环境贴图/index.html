@@ -8,6 +8,7 @@
     </style>
     <link rel="stylesheet" href="../../css/dat.gui.css">
     <script src="../../3d/dat.gui.js"></script>
+    <script src="../../su7/js/gsap/gsap.min.js"></script>
 </head>
 <body>
 <canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
@@ -17,6 +18,7 @@
     import { OrbitControls }  from '../../3d/OrbitControls.js'
     import { GLTFLoader }  from '../../loaders/GLTFLoader.js';
     import { RGBELoader } from '../../loaders/RGBELoader.js';
+    import DynamicEnv from  '../../su7/js/config/DynamicEnv.js'
 
     //********************************↓COMMON↓***************************************
     const canvas = document.querySelector('#canvas')
@@ -25,21 +27,29 @@
 
     let scene,camera,renderer,controls
 
-    const fov = 40
+    const fov = 75
     const aspect =  window.innerWidth/  window.innerHeight
     const near = 0.1
-    const far = 1000
+    const far = 500
+
+    const gltfLoader = new GLTFLoader()
+    let envmap1, envmap2,groundLoader,cubeRenderTarget, cubeCamera,time = 0
 
     scene = new THREE.Scene()
     scene.background = new THREE.Color('black')
+    scene.fog = new THREE.Fog( 0x000000, 4, 40 );
 
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
-    camera.position.set(0, 10, 15)
-    camera.lookAt(10,10, 10)
+    camera.position.set( -0.1072,  1, -3.4973);
+    camera.uIntensity = 0
 
-    renderer = new THREE.WebGLRenderer({ canvas })
+    renderer = new THREE.WebGLRenderer({ canvas,antialias: true })
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize( window.innerWidth, window.innerHeight );
     renderer.setAnimationLoop(renderLoop);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
 
     // 控制相机
     controls = new OrbitControls(camera, canvas)
@@ -56,32 +66,69 @@
     }
 
     function renderLoop(){
+        if (groundLoader){
+            groundLoader.visible = false;
+            cubeCamera.position.copy(camera.position);
+            cubeCamera.position.y *= -1;
+            cubeCamera.update(renderer,scene);
+            groundLoader.visible = true;
+        }
         renderer.render( scene, camera );
-    }
 
+        time += 0.01
+        const step = time > 1 ? 1 : time
+        if (envmap1 && envmap2){
+            const dynamicEnv = new DynamicEnv(renderer,{
+                envmap1,
+                envmap2,
+            });
+            scene.environment = dynamicEnv.envMap;
+            dynamicEnv.setWeight(step);
+            dynamicEnv.setIntensity(step);
+        }
+
+    }
     //********************************↑COMMON↑***************************************
-    const gltfLoader = new GLTFLoader()
-    const rgbeLoader = new RGBELoader()
+
+    // cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024);
+    // cubeRenderTarget.texture.type = THREE.UnsignedByteType;
+    // cubeCamera = new THREE.CubeCamera(0.1, 200, cubeRenderTarget);
 
     gltfLoader.load('../../su7/models/gltf/su7-car_edit.glb',(gltf)=>{
+        gltf.scene.traverse((child)=>{
+            if (child.name === '平面'){
+                child.visible = false
+            }
+        })
         scene.add(gltf.scene)
     })
 
-    const pmremGenerator = new THREE.PMREMGenerator( renderer );
-    const sceneEnv = new THREE.Scene();
+    init()
+    async function init(){
+        envmap1 = await getRGBELoader('../../su7/models/t_env_night.hdr')
+        envmap2 = await getRGBELoader('../../su7/models/t_env_light.hdr')
 
-    let renderTarget;
+        gsap.to(camera,{
+            fov: 60,
+            uIntensity: 1,
+            duration: 3,
+            ease: 'power2.out',
+            onUpdate:()=>{
+                camera.updateProjectionMatrix();
+            }
+        })
+    }
 
-    if ( renderTarget !== undefined ) renderTarget.dispose();
+    function getRGBELoader(path){
+        const rgbeLoader = new RGBELoader()
 
-    rgbeLoader.load('../../su7/models/t_env_light.hdr',(rgb)=>{
-
-        sceneEnv.background = rgb;
-        renderTarget = pmremGenerator.fromScene( sceneEnv );
-        sceneEnv.background = null;
-
-        scene.environment = renderTarget.texture;
-    })
+        return new Promise(resolve => {
+            rgbeLoader.load(path, (reb) =>{
+                reb.mapping = THREE.CubeUVReflectionMapping;
+                resolve(reb)
+            })
+        })
+    }
 
 
 
