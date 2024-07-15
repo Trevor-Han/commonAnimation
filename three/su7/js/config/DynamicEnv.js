@@ -17,7 +17,8 @@ export default class DynamicEnv{
             width: envData.width,
             height: envData.height,
         });
-        this.envMap.mapping = THREE.CubeUVReflectionMapping;
+        // this.envMap.mapping = THREE.CubeUVReflectionMapping;
+        this.envMap.mapping = THREE.EquirectangularReflectionMapping;
 
         this.material = new THREE.ShaderMaterial({
             vertexShader: dynamicEnvVertexShader,
