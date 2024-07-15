@@ -56,8 +56,8 @@
     import {vertexShader as vertexShaderSeep } from "./js/shaders/seep/vertex.js";
     import {fragmentShader as fragmentShaderSeep } from "./js/shaders/seep/fragment.js";
     import ReflectFloorMesh from './js/config/ReflectFloor.js'
-    import {vertexShader as dynamicEnvVertexShader } from "./js/shaders/DynamicEnv/vert.js";
-    import {fragmentShader as dynamicEnvFragmentShader } from "./js/shaders/DynamicEnv/frag.js";
+    import {vertexShader as reflectFloorVertexShader } from "./js/shaders/ReflectFloor/vert_1.js";
+    import {fragmentShader as reflectFloorFragmentShader } from "./js/shaders/ReflectFloor/frag_1.js";
 
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -127,18 +127,18 @@
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target = new THREE.Vector3(0, 1, 0);
 
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-
-    controls.enableZoom = false;
-
-    controls.enablePan = false;
-
-    controls.maxDistance = 3;
-    controls.minDistance = 3;
-
-    controls.minPolarAngle = 0.1;
-    controls.maxPolarAngle = Math.PI / 2;
+    // controls.enableDamping = true;
+    // controls.dampingFactor = 0.08;
+    //
+    // controls.enableZoom = false;
+    //
+    // controls.enablePan = false;
+    //
+    // controls.maxDistance = 3;
+    // controls.minDistance = 3;
+    //
+    // controls.minPolarAngle = 0.1;
+    // controls.maxPolarAngle = Math.PI / 2;
 
     const cameraShake = new CameraShake();
     cameraShake.setIntensity(0);
@@ -277,7 +277,26 @@
                     }
 
                     if (child.name === '平面'){
-                        child.material.envMap = cubeRenderTarget.texture;
+                        // child.material.envMap = cubeRenderTarget.texture;
+                        // // child.visible = false
+                        groundLoader = child
+
+                        child.material = new THREE.ShaderMaterial({
+                            transparent: true,
+                            side: THREE.DoubleSide,
+                            vertexShader:reflectFloorVertexShader,
+                            fragmentShader: reflectFloorFragmentShader,
+                            uniforms: {
+                                uColor: { value: new THREE.Color("#ffffff") },
+                                uSpeed: { value: 10 },
+                                uReflectMatrix: { value: new THREE.Matrix4() },
+                                uReflectTexture:{ value: null },
+                                normalMap:{ value:  new THREE.TextureLoader().load('./img/t_floor_normal.webp') },
+                                roughnessMap:{ value:  new THREE.TextureLoader().load('./img/t_floor_roughness.webp') },
+                                uReflectIntensity: { value: 25 },
+                                uMipmapTextureSize: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                            },
+                        });
                         child.material.normalMap = new THREE.TextureLoader().load('./img/t_floor_normal.webp')
                         child.material.roughnessMap = new THREE.TextureLoader().load('./img/t_floor_roughness.webp')
 
@@ -290,8 +309,6 @@
                         child.material.roughnessMap.colorSpace = THREE.LinearSRGBColorSpace
                         child.material.roughnessMap.wrapS = THREE.RepeatWrapping
                         child.material.roughnessMap.wrapS = THREE.RepeatWrapping
-                        // child.visible = false
-                        groundLoader = child
                     }
 
                     if (child.type === 'Mesh' && child.name !== '平面'){
@@ -414,7 +431,7 @@
 
                 setTimeout(()=>{
                     car.traverse(child=>{
-                        if (child.isMesh){
+                        if (child.isMesh && child.name !== '平面'){
                             child.material.envMap = cubeRenderTarget.texture
                         }
                     })
