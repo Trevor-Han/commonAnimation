@@ -25,7 +25,7 @@ export default class Reflector extends THREE.Mesh {
 
     const normalMap0 = options.normalMap0 || textureLoader.load('../../img/t_floor_normal.webp')
     const roughness = options.roughness || textureLoader.load('../../img/t_floor_roughness.webp')
-    const Noise = options.tNoise || textureLoader.load('../../img/noise.png')
+    const Noise = options.tNoise || null
     const reflectorPlane = new THREE.Plane();
     const normal = new THREE.Vector3();
     const reflectorWorldPosition = new THREE.Vector3();
@@ -75,7 +75,7 @@ export default class Reflector extends THREE.Mesh {
 
     normalMap0.wrapS = normalMap0.wrapT = THREE.RepeatWrapping
     roughness.wrapS = roughness.wrapT = THREE.RepeatWrapping
-    Noise.wrapS = Noise.wrapT = THREE.RepeatWrapping
+    // Noise.wrapS = Noise.wrapT = THREE.RepeatWrapping
 
     this.material.uniforms['tReflectionMap'].value = renderTarget.texture
     this.material.uniforms['tNormalMap0'].value = normalMap0

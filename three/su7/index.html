@@ -163,20 +163,20 @@
     loader.onLoadEnd(()=>{
         // initHemisphereLight();
         // initLight();
-        initReflector()
+        // initReflector()
 
         buttOnClick();
 
         setTimeout(()=>{
-            // if (envmap1 && envmap1){
-            //     dynamicEnv = new DynamicEnv(renderer,{
-            //         envmap1,
-            //         envmap2,
-            //     });
-            //     // scene.background = dynamicEnv.envMap;
-            //     scene.environment = dynamicEnv.envMap;
-            //     dynamicEnv.setWeight(0);
-            // }
+            if (envmap1 && envmap1){
+                dynamicEnv = new DynamicEnv(renderer,{
+                    envmap1,
+                    envmap2,
+                });
+                // scene.background = dynamicEnv.envMap;
+                scene.environment = dynamicEnv.envMap;
+                dynamicEnv.setWeight(0);
+            }
 
             intoScene()
         },1000)
@@ -196,21 +196,21 @@
             duration: 3,
             ease: 'power2.out',
             onUpdate:()=>{
-                // dynamicEnv.setIntensity(camera.uIntensity)
-                // dynamicEnv.setWeight(camera.uIntensity)
+                dynamicEnv.setIntensity(camera.uIntensity)
+                dynamicEnv.setWeight(camera.uIntensity)
                 nameToMeshDic['topLigt'].material.emissiveIntensity = camera.uIntensity
                 camera.updateProjectionMatrix();
             }
         })
-        // gsap.to(camera,{
-        //     fov: fovDefault,
-        //     uIntensity: 1,
-        //     duration: 7,
-        //     onUpdate:()=>{
-        //         dynamicEnv.setIntensity(camera.uIntensity)
-        //         dynamicEnv.setWeight(camera.uIntensity)
-        //     }
-        // })
+        gsap.to(camera,{
+            fov: fovDefault,
+            uIntensity: 1,
+            duration: 7,
+            onUpdate:()=>{
+                dynamicEnv.setIntensity(camera.uIntensity)
+                dynamicEnv.setWeight(camera.uIntensity)
+            }
+        })
 
     }
     function initReflector() {
@@ -290,15 +290,12 @@
                         child.material.roughnessMap.colorSpace = THREE.LinearSRGBColorSpace
                         child.material.roughnessMap.wrapS = THREE.RepeatWrapping
                         child.material.roughnessMap.wrapS = THREE.RepeatWrapping
-                        child.visible = false
+                        // child.visible = false
                         groundLoader = child
                     }
 
-                    if (child.type === 'Mesh'){
-                        // child.material.envMap = cubeRenderTarget.texture;
-                        // const aoMap = new THREE.TextureLoader().load('./models/Image_2.png')
-                        // child.material.envMapIntensity = 10;
-                        // child.material.aoMap = aoMap
+                    if (child.type === 'Mesh' && child.name !== '平面'){
+                        child.material.envMapIntensity = 15;
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
@@ -415,6 +412,14 @@
                 nameToMeshDic['tunnelOpacity'].material.uniforms.iTime.value = 0.0
                 nameToMeshDic['topLigt'].material.emissiveIntensity = 0
 
+                setTimeout(()=>{
+                    car.traverse(child=>{
+                        if (child.isMesh){
+                            child.material.envMap = cubeRenderTarget.texture
+                        }
+                    })
+                },100)
+
                 runTunnel = true
                 isMouseDown = true
                 nameToMeshDic['topLigt'].visible = false
@@ -454,7 +459,7 @@
                     repeat: 0,
                     ease: "power2.out",
                     onUpdate: () => {
-                        // dynamicEnv.setIntensity(1 - tunnel.material.opacity)
+                        dynamicEnv.setIntensity(1 - tunnel.material.opacity)
                         uSeep = tunnel.material.opacity / 10
                         nameToMeshDic['tunnelOpacity'].material.uniforms.uOpacity.value = tunnel.material.opacity
                     }
@@ -488,6 +493,14 @@
                 const tunnel = nameToMeshDic['tunnel']
                 const car = nameToMeshDic['car']
 
+                setTimeout(()=>{
+                    car.traverse(child=>{
+                        if (child.isMesh && child.name !== '平面'){
+                            child.material.envMap = null
+                        }
+                    })
+                },100)
+
                 runTunnel = false
                 nameToMeshDic['cameraTween'] && nameToMeshDic['cameraTween'].kill()
                 nameToMeshDic['cameraShakeTween'] && nameToMeshDic['cameraShakeTween'].kill()
@@ -514,7 +527,7 @@
                             nameToMeshDic['topLigt'].visible = true
                             nameToMeshDic['topLigt'].material.emissiveIntensity = 1 - tunnel.material.opacity
                         }
-                        // dynamicEnv.setIntensity(1 - tunnel.material.opacity)
+                        dynamicEnv.setIntensity(1 - tunnel.material.opacity)
                         uSeep = tunnel.material.opacity / 10
                         nameToMeshDic['tunnelOpacity'].material.uniforms.uOpacity.value = tunnel.material.opacity
                     },
@@ -591,17 +604,6 @@
         // } else {
         //     controls.enabled = false;
         // }
-        time += 0.008
-        const step = time > 1 ? 1 : time
-        if (envmap1 && envmap2 && step < 1){
-            const dynamicEnv = new DynamicEnv(renderer,{
-                envmap1,
-                envmap2,
-            });
-            scene.environment = dynamicEnv.envMap;
-            dynamicEnv.setWeight(step);
-            dynamicEnv.setIntensity(step);
-        }
         if ( nameToMeshDic['tunnelOpacity'] && isMouseDown){
             nameToMeshDic['tunnelOpacity'].material.uniforms.iTime.value+= uSeep
         }
