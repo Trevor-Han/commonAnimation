@@ -193,7 +193,7 @@ void main(){
     // col+=reflectionSample;
     col*=3.;
     vec3 fres=fresnel(vec3(0.),vNormal,viewDir);
-    col=mix(col,reflectionSample,fres);
+    col=mix(col,reflectionSample,fres); 
     
     gl_FragColor=vec4(col,1.);
      // gl_FragColor=vec4(1.0, 0.0, 0.0, 1.0);

@@ -20,6 +20,8 @@
     import { RGBELoader } from '../../loaders/RGBELoader.js';
     import DynamicEnv from  '../../su7/js/config/DynamicEnv.js'
     import ReflectFloorMesh from '../../su7/js/config/ReflectFloor.js'
+    import { vertexShader as vertexWind} from "../../su7/js/shaders/wind/vertex_line.js";
+    import {fragmentShader as fragmentWind} from "../../su7/js/shaders/wind/fragment_line_wind.js";
     // import { vertexShader as reflecFloorVertexShader} from "../../su7/js/shaders/ReflecFloor/vert.js";
     // import {fragmentShader as reflecFloorFragmentShader} from "../../su7/js/shaders/ReflecFloor/frag.js";
 
@@ -28,7 +30,7 @@
     canvas.height = window.innerHeight
     canvas.width = window.innerWidth
 
-    let scene,camera,renderer,controls,dynamicEnv
+    let scene,camera,renderer,controls,dynamicEnv, windLine = {}
 
     const fov = 75
     const aspect =  window.innerWidth/  window.innerHeight
@@ -68,6 +70,7 @@
 
     }
 
+    let clock = new THREE.Clock();
     function renderLoop(){
         if (groundLoader){
             groundLoader.visible = false;
@@ -76,19 +79,25 @@
             cubeCamera.update(renderer,scene);
             groundLoader.visible = true;
         }
-        renderer.render( scene, camera );
-
-        time += 0.01
-        const step = time > 1 ? 1 : time
-        if (envmap1 && envmap2 && step < 1){
-            const dynamicEnv = new DynamicEnv(renderer,{
-                envmap1,
-                envmap2,
-            });
-            scene.environment = dynamicEnv.envMap;
-            dynamicEnv.setWeight(step);
-            dynamicEnv.setIntensity(step);
+        if (windLine['wind_line_1'] && windLine['wind_line_2'] && windLine['wind_line_3'] && windLine['wind_line_4'] && windLine['wind_line_5'] ){
+            windLine['wind_line_1'].material.uniforms.vTime.value = clock.getElapsedTime()
+            windLine['wind_line_2'].material.uniforms.vTime.value = clock.getElapsedTime()
+            windLine['wind_line_3'].material.uniforms.vTime.value = clock.getElapsedTime()
+            windLine['wind_line_4'].material.uniforms.vTime.value = clock.getElapsedTime()
+            windLine['wind_line_5'].material.uniforms.vTime.value = clock.getElapsedTime()
         }
+        renderer.render( scene, camera );
+        // time += 0.01
+        // const step = time > 1 ? 1 : time
+        // if (envmap1 && envmap2 && step < 1){
+        //     const dynamicEnv = new DynamicEnv(renderer,{
+        //         envmap1,
+        //         envmap2,
+        //     });
+        //     scene.environment = dynamicEnv.envMap;
+        //     dynamicEnv.setWeight(step);
+        //     dynamicEnv.setIntensity(step);
+        // }
 
     }
     //********************************↑COMMON↑***************************************
@@ -120,11 +129,44 @@
         scene.add(gltf.scene)
     })
 
+    gltfLoader.load('../../su7/models/gltf/wind_line.glb',(gltf)=>{
+        gltf.scene.traverse((child)=>{
+            if (child.isMesh){
+                // console.log(child.name);
+                windLine[child.name] = child
+                child.material = new THREE.ShaderMaterial({
+                    extensions: {
+                        derivatives: '#extension GL_OES_standard_derivatives : enable'
+                    },
+                    side: THREE.DoubleSide,
+                    uniforms: {
+                        vTime: { type: 'f', value: 0 },
+                        color: { value: new THREE.Color(1, 0, 0.13, 1) },
+                        vProgress: { type: 'f', value: 0.8 },
+                        opacity:{type:'f',value:1},
+                        random:{value:Math.random()}
+                    },
+                    transparent: true,
+                    // depthTest: false,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                    vertexShader: vertexWind,
+                    fragmentShader: fragmentWind
+
+                })
+            }
+        })
+        // console.log(windLine);
+        scene.add(gltf.scene)
+    })
+
     init()
     initReflector()
     async function init(){
         envmap1 = await getRGBELoader('../../su7/models/t_env_night.hdr')
         envmap2 = await getRGBELoader('../../su7/models/t_env_light.hdr')
+        envmap2.mapping = THREE.EquirectangularReflectionMapping
+        scene.environment = envmap2
 
         // dynamicEnv = new DynamicEnv(renderer,{
         //     envmap1,
