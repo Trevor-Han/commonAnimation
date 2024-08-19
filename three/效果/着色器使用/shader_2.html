@@ -66,7 +66,7 @@
     }
     const clock = new THREE.Clock()
     function renderLoop(){
-        material.uniforms.uTime.value = clock.getElapsedTime();
+        // material.uniforms.uTime.value = clock.getElapsedTime();
         renderer.render( scene, camera );
     }
 
@@ -146,6 +146,16 @@
 
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
+
+    // const geometry = new THREE.PlaneBufferGeometry(1600, 1400)
+    // const mirror = new THREE.Reflector(geometry, {
+    //     clipBias: 0.03,
+    //     textureWidth: window.innerWidth * window.devicePixelRatio,
+    //     textureHeight: window.innerHeight * window.devicePixelRatio,
+    //     color: new Color(0x889999)
+    // })
+    // mirror.rotation.x = -0.5 * Math.PI
+    // scene.add(mirror)
 
 
 </script>

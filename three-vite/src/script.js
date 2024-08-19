@@ -45,6 +45,9 @@ rgbeLoader.load("./aerodynamics_workshop.hdr", (environmentMap) => {
 const uniforms = {
     uSliceStart: new THREE.Uniform(1.75),
     uSliceArc: new THREE.Uniform(1.25),
+    uSliceStartY: new THREE.Uniform(0),
+    uSliceWidth: new THREE.Uniform(500),
+    uMinWidth: new THREE.Uniform(-500),
 };
 
 const patchMap = {
@@ -53,7 +56,7 @@ const patchMap = {
             #include <colorspace_fragment>
 
             if(!gl_FrontFacing)
-                gl_FragColor = vec4(0.75, 0.15, 0.3, 1.0);
+                gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
         `, // it MUST have the same name in order to work
     },
 };
@@ -62,6 +65,8 @@ gui.add(uniforms.uSliceStart, "value", -Math.PI, Math.PI, 0.001).name(
     "uSliceStart"
 );
 gui.add(uniforms.uSliceStart, "value", 0, Math.PI * 2, 0.001).name("uSliceArc");
+gui.add(uniforms.uSliceWidth, "value", -500, 500, 0.001).name("uSliceWidth");
+gui.add(uniforms.uSliceStartY, "value", -500, 500, 0.001).name("uSliceStartY");
 
 // Material
 const material = new THREE.MeshStandardMaterial({
@@ -84,7 +89,7 @@ const slicedMaterial = new CustomShaderMaterial({
     metalness: 0.5,
     roughness: 0.25,
     envMapIntensity: 0.5,
-    color: "#858080",
+    // color: "#26d6e9",
     side: THREE.DoubleSide,
 });
 
@@ -103,7 +108,7 @@ const slicedDepthMaterial = new CustomShaderMaterial({
 
 // Model
 let model = null;
-gltfLoader.load("./gears.glb", (gltf) => {
+/*gltfLoader.load("./gears.glb", (gltf) => {
     model = gltf.scene;
 
     model.traverse((child) => {
@@ -115,6 +120,25 @@ gltfLoader.load("./gears.glb", (gltf) => {
                 child.customDepthMaterial = slicedDepthMaterial;
             } else {
                 child.material = material;
+            }
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+
+    scene.add(model);
+});*/
+gltfLoader.load("./su7-car_edit.glb", (gltf) => {
+    model = gltf.scene;
+
+    model.traverse((child) => {
+        // Check if it's a mesh and not anything else like camera ecc.
+        if (child.isMesh) {
+            console.log(child.name);
+            if (child.name !== "平面" && child.name !== "topLigt" && child.name !== 'radar') {
+                // We want to apply our custom shaders ONLY to the outerHull, while the other parts of the model won't be changed
+                child.material = slicedMaterial;
+                child.customDepthMaterial = slicedDepthMaterial;
             }
             child.castShadow = true;
             child.receiveShadow = true;
@@ -219,7 +243,7 @@ const tick = () => {
 
     if (model) {
         // Update model
-        model.rotation.y = elapsedTime * 0.1;
+        // model.rotation.y = elapsedTime * 0.1;
     }
 
     // Update controls
