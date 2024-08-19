@@ -7,6 +7,7 @@ import CustomShaderMaterial from "three-custom-shader-material/vanilla";
 import GUI from "lil-gui";
 import slicedVertexShader from "./shaders/sliced/vertex.glsl";
 import slicedFragmentShader from "./shaders/sliced/fragment.glsl";
+import {carColor} from './carColor.js'
 
 /**
  * Base
@@ -76,7 +77,7 @@ const material = new THREE.MeshStandardMaterial({
     color: "#858080",
 });
 
-const slicedMaterial = new CustomShaderMaterial({
+/*const slicedMaterial = new CustomShaderMaterial({
     // CSM
     baseMaterial: THREE.MeshStandardMaterial,
     silent: true,
@@ -91,7 +92,28 @@ const slicedMaterial = new CustomShaderMaterial({
     envMapIntensity: 0.5,
     // color: "#26d6e9",
     side: THREE.DoubleSide,
-});
+});*/
+
+const slicedMaterial = (config )=>{
+    return new CustomShaderMaterial({
+        // CSM
+        baseMaterial: THREE.MeshStandardMaterial,
+        silent: true,
+        vertexShader: slicedVertexShader,
+        fragmentShader: slicedFragmentShader,
+        uniforms,
+        patchMap,
+
+        // MeshStandardMaterial
+        metalness: 0.5,
+        roughness: 0.25,
+        envMapIntensity: 0.5,
+        color: config?.color || new THREE.Color(38,214,233),
+        transparent: config?.transparent || false,
+        opacity: config?.opacity || 1,
+        side: THREE.DoubleSide,
+    });
+}
 
 const slicedDepthMaterial = new CustomShaderMaterial({
     // CSM
@@ -135,11 +157,10 @@ gltfLoader.load("./su7-car_edit.glb", (gltf) => {
         // Check if it's a mesh and not anything else like camera ecc.
         if (child.isMesh) {
             console.log(child.name);
-            if (child.name !== "平面" && child.name !== "topLigt" && child.name !== 'radar') {
-                // We want to apply our custom shaders ONLY to the outerHull, while the other parts of the model won't be changed
-                child.material = slicedMaterial;
-                child.customDepthMaterial = slicedDepthMaterial;
-            }
+            const met = carColor[child.name]
+            // We want to apply our custom shaders ONLY to the outerHull, while the other parts of the model won't be changed
+            child.material = slicedMaterial(met);
+            child.customDepthMaterial = slicedDepthMaterial;
             child.castShadow = true;
             child.receiveShadow = true;
         }
