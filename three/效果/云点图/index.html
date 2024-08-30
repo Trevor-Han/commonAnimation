@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+    import { GLTFLoader }  from '../../loaders/GLTFLoader.js';
+    import { RoomEnvironment }  from '../../environments/RoomEnvironment.js';
+
+
+    //********************************↓COMMON↓***************************************
+    const gltfLoader = new GLTFLoader()
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls
+
+    const fov = 40
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 1000
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(5, 5, 5)
+    // camera.lookAt(10,10, 10)
+
+    renderer = new THREE.WebGLRenderer({ canvas })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+
+    function renderLoop(){
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+    scene.environment = new THREE.PMREMGenerator(renderer).fromScene(
+        new RoomEnvironment(),
+        0.04
+    ).texture;
+
+    let model = null
+    let previousPointCloudPositions = null
+    let pointCloud = null
+
+    init()
+   async function init(){
+       model =  await loadModel()
+       scene.add(model.scene)
+       createPointCloud(model.scene)
+       animatePointsToTarget(pointCloud);
+    }
+    function loadModel(){
+        return new Promise((resolve)=>{
+            gltfLoader.load('./ferrari_f50_1995.glb',(gltf)=>{
+                gltf.scene.visible = false
+                resolve(gltf)
+            })
+        })
+    }
+
+    function createPointCloud(mesh){
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+
+        mesh.updateMatrixWorld(true);
+        mesh.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                const vertex = new THREE.Vector3();
+                const positions = child.geometry.attributes.position;
+                for (let i = 0; i < positions.count; i++) {
+                    vertex.fromBufferAttribute(positions, i);
+                    vertex.applyMatrix4(child.matrixWorld);
+                    vertices.push(vertex.x, vertex.y, vertex.z);
+                }
+            }
+        })
+
+        let initialPositions = new Float32Array(vertices.length);
+        for (let i = 0; i < initialPositions.length; i +=3) {
+            initialPositions[i] = (Math.random() - 0.5) * 10;
+            initialPositions[i + 1] = (Math.random() - 0.5) * 10;
+            initialPositions[i + 2] = (Math.random() - 0.5) * 10;
+        }
+        geometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(initialPositions, 3)
+        );
+
+        const material = new THREE.PointsMaterial({
+            size: 0.005,
+            color: 0xffffff,
+        });
+
+        pointCloud = new THREE.Points(geometry, material);
+        pointCloud.visible = true
+
+        pointCloud.userData.targets = [];
+        pointCloud.userData.speeds = [];
+
+        for (let i = 0; i < vertices.length; i += 3) {
+            pointCloud.userData.targets.push(new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]));
+            pointCloud.userData.speeds.push(
+                Math.random() > 0.6
+                    ? Math.random() * 0.005 + 0.0005
+                    : Math.random() * 0.0005
+            );
+        }
+        scene.add(pointCloud);
+        previousPointCloudPositions = Array.from(vertices);
+    }
+
+    function animatePointsToTarget(pointCloud) {
+        const positions = pointCloud.geometry.attributes.position;
+        const targets = pointCloud.userData.targets;
+        const speeds = pointCloud.userData.speeds;
+
+        const progresses = new Array(positions.count).fill(0);
+
+        const animatePoints = () => {
+            let allPointsReachedTarget = true;
+            for (let i = 0; i < positions.count; i++) {
+                progresses[i] += speeds[i];
+                if (progresses[i] > 1) progresses[i] = 1;
+                else allPointsReachedTarget = false;
+
+                positions.array[i * 3] = THREE.MathUtils.lerp(
+                    positions.array[i * 3],
+                    targets[i].x,
+                    progresses[i]
+                );
+                positions.array[i * 3 + 1] = THREE.MathUtils.lerp(
+                    positions.array[i * 3 + 1],
+                    targets[i].y,
+                    progresses[i]
+                );
+                positions.array[i * 3 + 2] = THREE.MathUtils.lerp(
+                    positions.array[i * 3 + 2],
+                    targets[i].z,
+                    progresses[i]
+                );
+            }
+            positions.needsUpdate = true;
+
+            if (!allPointsReachedTarget) {
+                requestAnimationFrame(animatePoints);
+            } else {
+                previousPointCloudPositions = Array.from(positions.array);
+            }
+        }
+        animatePoints()
+    }
+</script>
+</html>

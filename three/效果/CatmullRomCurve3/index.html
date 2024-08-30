@@ -58,9 +58,10 @@
     }
 
     function renderLoop(){
-        // for (let i= 0; i<allLinesMesh.length;i++){
-        //     allLinesMesh[i].material.uniforms.vTime.value = clock.getElapsedTime()
-        // }
+        for (let i= 0; i<allLinesMesh.length;i++){
+            allLinesMesh[i].material.uniforms.vTime.value = clock.getElapsedTime()
+            console.log(allLinesMesh[i].material.uniforms.vTime.value);
+        }
         renderer.render( scene, camera );
     }
 
@@ -119,7 +120,7 @@
 
         })
 
-    const planeMesh = new THREE.Mesh(new THREE.BufferGeometry(1,1,1), new THREE.MeshBasicMaterial({
+    const planeMesh = new THREE.Mesh(new THREE.BufferGeometry(10,10,10), new THREE.MeshBasicMaterial({
         side: THREE.DoubleSide,
         color: '#80deea',
         // stencilWrite: true,
