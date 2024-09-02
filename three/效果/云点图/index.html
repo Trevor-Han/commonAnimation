@@ -37,7 +37,8 @@
 
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
     camera.position.set(5, 5, 5)
-    // camera.lookAt(10,10, 10)
+    // camera.lookAt(-10,-10, -10)
+
 
     renderer = new THREE.WebGLRenderer({ canvas })
     renderer.setAnimationLoop(renderLoop);
@@ -45,6 +46,8 @@
 
     // 控制相机
     controls = new OrbitControls(camera, canvas)
+    // controls.target = new THREE.Vector3(-1, -1,-1)
+
 
 
     window.addEventListener('resize', onWindowResized);
@@ -70,8 +73,23 @@
     let model = null
     let previousPointCloudPositions = null
     let pointCloud = null
+    const curve = new THREE.SplineCurve( [
+        new THREE.Vector2( -10, 0 ),
+        new THREE.Vector2( -5, 5 ),
+        new THREE.Vector2( 0, 0 ),
+        new THREE.Vector2( 5, -5 ),
+        new THREE.Vector2( 10, 0 )
+    ] );
 
-    init()
+    const points = curve.getPoints( 50 );
+    const geometry = new THREE.BufferGeometry().setFromPoints( points );
+
+    const material = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+
+    // Create the final object to add to the scene
+    const splineObject = new THREE.Line( geometry, material );
+    scene.add(splineObject)
+    // init()
    async function init(){
        model =  await loadModel()
        scene.add(model.scene)
@@ -135,7 +153,7 @@
             );
         }
         scene.add(pointCloud);
-        previousPointCloudPositions = Array.from(vertices);
+        // previousPointCloudPositions = Array.from(vertices);
     }
 
     function animatePointsToTarget(pointCloud) {
@@ -173,7 +191,7 @@
             if (!allPointsReachedTarget) {
                 requestAnimationFrame(animatePoints);
             } else {
-                previousPointCloudPositions = Array.from(positions.array);
+                // previousPointCloudPositions = Array.from(positions.array);
             }
         }
         animatePoints()
