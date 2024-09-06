@@ -17,8 +17,8 @@ export default class DynamicEnv{
             width: envData.width,
             height: envData.height,
         });
+        this.bufferTexture = new THREE.WebGLRenderTarget(envData.width, envData.height);
         this.envMap.mapping = THREE.CubeUVReflectionMapping;
-        // this.envMap.mapping = THREE.EquirectangularReflectionMapping;
 
         this.material = new THREE.ShaderMaterial({
             vertexShader: dynamicEnvVertexShader,
@@ -31,10 +31,10 @@ export default class DynamicEnv{
                     value: envmap2,
                 },
                 uWeight: {
-                    value: 0.0,
+                    value: 0
                 },
                 uIntensity: {
-                    value: 0.0,
+                    value: 0,
                 },
             },
         });
@@ -43,19 +43,19 @@ export default class DynamicEnv{
         this.renderer = renderer
     }
     get envMap() {
-        return this.fbo.rt.texture;
+        // return this.fbo.rt.texture;
+        return this.bufferTexture.texture;
     }
-    update() {
-        this.renderer.setRenderTarget(this.fbo.rt);
-        this.quad.render(this.renderer);
-        this.renderer.setRenderTarget(null);
+    update(renderer,fn = ()=>({})) {
+        renderer.setRenderTarget(this.bufferTexture);
+        this.quad.render(renderer);
+        renderer.setRenderTarget(null);
+        fn(this.bufferTexture)
     }
     setWeight(value) {
         this.material.uniforms.uWeight.value = value;
-        this.update()
     }
     setIntensity(value) {
         this.material.uniforms.uIntensity.value = value;
-        this.update()
     }
 }

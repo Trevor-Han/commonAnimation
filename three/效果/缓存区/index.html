@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+    import {FullScreenQuad} from '../../postprocessing/Pass.js'
+
+    //********************************↓COMMON↓***************************************
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls
+
+    const fov = 40
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 1000
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(0, 10, 60)
+    camera.lookAt(10,10, 10)
+
+    renderer = new THREE.WebGLRenderer({ canvas })
+    renderer.setClearColor(0xffffff, 1);
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+
+    function renderLoop(){
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+
+    const bufferScene = new THREE.Scene();
+    // //渲染目标缓冲区
+    const bufferTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+
+    // create the ground plane
+    const fboGeometry = new THREE.PlaneGeometry(60, 30);
+    const fboMaterial = new THREE.MeshBasicMaterial({
+        color: 0xAAAAAA,
+        side:THREE.DoubleSide
+    });
+
+    const fboPlane = new THREE.Mesh(fboGeometry, fboMaterial);
+
+    // console.log(fboPlane);
+    const quad = new FullScreenQuad(fboPlane.material)
+
+    // add the plane to the scene
+    bufferScene.add(fboPlane);
+
+    //渲染到目标缓冲区
+    renderer.setRenderTarget(bufferTexture);
+    renderer.render(bufferScene, camera);
+    // quad.render(renderer)
+    //
+    // //渲染到屏幕
+    renderer.setRenderTarget(null);
+    //
+    // // create the ground plane
+    const planeGeometry = new THREE.PlaneGeometry(60, 30);
+    const planeMaterial = new THREE.MeshBasicMaterial({
+        map: bufferTexture.texture      //获取渲染目标缓冲区中的纹理
+    });
+
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    scene.add(plane);
+
+
+</script>
+</html>
