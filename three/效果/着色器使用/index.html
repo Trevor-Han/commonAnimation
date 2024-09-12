@@ -82,6 +82,12 @@
         // 即 Model 模型矩阵、View 视图矩阵和 Projection 投影矩阵（前俩者可以合并为 modelViewMatrix），
         // 因此在顶点着色器里这一行代码是必不可少的
 
+        // vec4 modelPosition = modelMatrix * vec4(position, 1.0); // 模型位置
+        // vec4 viewPosition = viewMatrix * modelPosition; // 视口位置
+        // vec4 projectedPosition = projectionMatrix * viewPosition; // 项目位置
+        //
+        // gl_Position = projectedPosition;
+
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `;

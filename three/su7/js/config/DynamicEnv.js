@@ -43,14 +43,12 @@ export default class DynamicEnv{
         this.renderer = renderer
     }
     get envMap() {
-        // return this.fbo.rt.texture;
         return this.bufferTexture.texture;
     }
-    update(renderer,fn = ()=>({})) {
+    update(renderer) {
         renderer.setRenderTarget(this.bufferTexture);
         this.quad.render(renderer);
         renderer.setRenderTarget(null);
-        fn(this.bufferTexture)
     }
     setWeight(value) {
         this.material.uniforms.uWeight.value = value;
