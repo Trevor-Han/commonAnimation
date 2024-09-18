@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+
+    //********************************↓COMMON↓***************************************
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls,material
+
+    const fov = 75
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 100
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(-10, 0, 10)
+    // camera.lookAt(10,10, 10)
+    //
+    renderer = new THREE.WebGLRenderer({ canvas,antialias: true })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+    const cameraPosition = new THREE.Vector3()
+    const cameraTarget = new THREE.Vector3()
+    const clock = new THREE.Clock()
+    function renderLoop(){
+        // material.uniforms.uTime.value = clock.getElapsedTime();
+        if (lineIndex > linePoints.length - flowingLineLength) {
+            lineIndex = 0
+        }
+        lineIndex += 1
+        flowingLinePoints = linePoints.slice(lineIndex, lineIndex + flowingLineLength)
+        flowingLineCurve = new THREE.CatmullRomCurve3(flowingLinePoints)
+        flowingLinePoints = flowingLineCurve.getSpacedPoints(50)
+        // 为拖尾的光设置新的点位从而实现流动效果
+        flowingLine.geometry.setFromPoints(flowingLinePoints)
+        // console.log(flowingLine);
+
+
+        cameraPosition.copy(flowingLinePoints[0])
+        cameraPosition.z += 10
+        // cameraPosition.y += 0.6
+        //
+        cameraTarget.copy(flowingLinePoints[0])
+        cameraTarget.x +=0.3
+        //
+        camera.position.copy(cameraPosition)
+        // camera.lookAt(cameraTarget)
+        controls.target.copy(cameraTarget)
+
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+    const gui = new GUI({width:314})
+
+    const lineCurve = new THREE.CatmullRomCurve3( [
+        new THREE.Vector3( -10, 0, 10 ),
+        new THREE.Vector3( -5, 5, 5 ),
+        new THREE.Vector3( 0, 0, 0 ),
+        new THREE.Vector3( 5, -5, 5 ),
+        new THREE.Vector3( 10, 0, 10 )
+    ] );
+    const lineGeometry = new THREE.BufferGeometry()
+    const linePoints = lineCurve.getSpacedPoints(1000) // 将曲线细分出更多的的点
+    lineGeometry.setFromPoints(linePoints)
+    const lineMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
+    const line = new THREE.Line(lineGeometry, lineMaterial)
+    scene.add(line)
+
+    const scale1 = []
+    let flowingLineCurve
+    let flowingLineGeometry = new THREE.BufferGeometry()
+    let flowingLineLength = 50
+    let lineIndex = 0
+    let flowingLinePoints = linePoints.slice(lineIndex, lineIndex + flowingLineLength)
+    flowingLineCurve = new THREE.CatmullRomCurve3(flowingLinePoints)
+    flowingLinePoints = flowingLineCurve.getSpacedPoints(50)
+    flowingLineGeometry.setFromPoints(flowingLinePoints)
+
+    for (let i = 0; i < flowingLinePoints.length; i++) {
+        scale1.push((i + 1) / flowingLinePoints.length)
+    }
+    flowingLineGeometry.attributes.scale1 = new THREE.BufferAttribute(new Float32Array(scale1), 1)
+
+    const flowingLineMaterial = new THREE.PointsMaterial({
+        color: 0xfff000,
+        size: 1
+    })
+    flowingLineMaterial.onBeforeCompile = (shader) => {
+        shader.vertexShader = shader.vertexShader.replace(
+            'void main() {',
+            `
+        attribute float scale1;
+        void main() {
+        `
+        )
+            .replace(
+                'gl_PointSize = size;',
+                `
+        gl_PointSize = size * scale1;
+        `
+            )
+    }
+
+    const flowingLine = new THREE.Points(flowingLineGeometry, flowingLineMaterial)
+    scene.add(flowingLine)
+
+    gui.add(camera.position, 'x').min(-10).max(10).step(0.01)
+    gui.add(camera.position, 'y').min(-10).max(10).step(0.01)
+    gui.add(camera.position, 'z').min(-10).max(10).step(0.01)
+
+
+
+</script>
+</html>

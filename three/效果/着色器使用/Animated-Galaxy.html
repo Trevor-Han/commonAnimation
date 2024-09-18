@@ -33,17 +33,17 @@
 
     let scene,camera,renderer,controls,material
 
-    const fov = 40
+    const fov = 75
     const aspect =  window.innerWidth/  window.innerHeight
     const near = 0.1
-    const far = 1000
+    const far = 100
 
     scene = new THREE.Scene()
     scene.background = new THREE.Color('#232323')
 
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
-    camera.position.set(0, 10, 15)
-    camera.lookAt(10,10, 10)
+    camera.position.set(3, 3,3)
+    // camera.lookAt(10,10, 10)
 
     renderer = new THREE.WebGLRenderer({ canvas,antialias: true })
     renderer.setAnimationLoop(renderLoop);
@@ -135,13 +135,46 @@
         geometry.setAttribute('aRandomness', new THREE.BufferAttribute(randomness, 3));
 
         const galaxyVertexShader = `
+        uniform float uTime;
+        uniform float uSize;
+
+        attribute float aScale;
+        attribute vec3 aRandomness;
+
+        varying vec3 vColor;
          void main() {
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+
+             float angle = atan(modelPosition.x, modelPosition.z);
+             float distanceToCenter = length(modelPosition.xz);
+             float angleOffset = (1.0 / distanceToCenter) * uTime * 0.2;
+             angle += angleOffset;
+             modelPosition.x = cos(angle) * distanceToCenter;
+             modelPosition.z = sin(angle) * distanceToCenter;
+
+             modelPosition.xyz += aRandomness;
+
+            vec4 viewPosition = viewMatrix * modelPosition;
+            vec4 projectedPosition = projectionMatrix * viewPosition;
+            gl_Position = projectedPosition;
+
+            gl_PointSize = uSize * aScale;
+             gl_PointSize *= ( 1.0 / - viewPosition.z );
+            vColor = color;
          }
         `
         const galaxyFragmentShader = `
+        varying vec3 vColor;
+
          void main() {
-              gl_FragColor = vec4(1.0,1.0,1.0,1.0);
+            float strength = distance(gl_PointCoord, vec2(0.5));
+            strength = 1.0 - strength;
+            strength = pow(strength, 10.0);
+
+            // Final color
+            vec3 color = mix(vec3(0.0), vColor, strength);
+
+            gl_FragColor = vec4(color, 1.0);
          }
         `
 
