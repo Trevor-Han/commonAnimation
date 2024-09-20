@@ -2,9 +2,7 @@ import * as THREE from "../3d/three.module.js";
 import {vertexShader as dynamicEnvVertexShader } from "../shaders/DynamicEnv/vert.js";
 import {fragmentShader as dynamicEnvFragmentShader } from "../shaders/DynamicEnv/frag.js";
 import {FullScreenQuad} from '../postprocessing/Pass.js'
-
 import FBO from "./FBO.js";
-
 export default class DynamicEnv{
     renderer;
     fbo;
@@ -24,18 +22,10 @@ export default class DynamicEnv{
             vertexShader: dynamicEnvVertexShader,
             fragmentShader: dynamicEnvFragmentShader,
             uniforms: {
-                uEnvmap1: {
-                    value: envmap1,
-                },
-                uEnvmap2: {
-                    value: envmap2,
-                },
-                uWeight: {
-                    value: 0
-                },
-                uIntensity: {
-                    value: 0,
-                },
+                uEnvmap1: {value: envmap1,},
+                uEnvmap2: {value: envmap2,},
+                uWeight: {value: 0},
+                uIntensity: {value: 0,},
             },
         });
         this.quad = new FullScreenQuad(this.material)
