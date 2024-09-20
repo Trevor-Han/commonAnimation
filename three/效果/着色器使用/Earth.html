@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+    import {TextureLoader} from '../../3d/three.module.js'
+
+    //********************************↓COMMON↓***************************************
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls,material
+
+    const fov = 25
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 100
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(12, 5, 4)
+    // camera.lookAt(10,10, 10)
+    //
+    renderer = new THREE.WebGLRenderer({ canvas,antialias: true })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+    const clock = new THREE.Clock()
+    function renderLoop(){
+
+        earth.rotation.y = clock.getElapsedTime() * 0.1;
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+    const vertexShader = `
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main(){
+             vec4 modelPosition = modelMatrix  * vec4(position, 1.0);
+             gl_Position =projectionMatrix * viewMatrix * modelPosition;
+
+             vec3 modelNormal =(modelMatrix  * vec4(normal, 0.0)).xyz;
+
+             vUv =uv;
+             vNormal =modelNormal;
+             vPosition = modelPosition.xyz;
+        }
+    `
+    const fragmentShader = `
+        uniform sampler2D uDayTexture;
+        uniform sampler2D uNightTexture;
+        uniform sampler2D uSpecularCloudsTexture;
+        uniform vec3 uSunDirection;
+
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main(){
+            vec3 viewDirection = normalize(vPosition - cameraPosition);
+            vec3 normal = normalize(vNormal);
+            vec3 color = vec3(0.0);
+
+            float sunOrientation = dot(uSunDirection, normal);
+            color = vec3(sunOrientation);
+
+            float dayMix = smoothstep(- 0.25, 0.5, sunOrientation);
+            vec3 dayColor = texture(uDayTexture, vUv).rgb;
+            vec3 nightColor = texture(uNightTexture, vUv).rgb;
+            color = mix(nightColor, dayColor, dayMix);
+
+            vec2 specularCloudsColor = texture(uSpecularCloudsTexture, vUv).rg;
+            float cloudsMix = smoothstep(0.3, 1.0, specularCloudsColor.g);
+            cloudsMix *= dayMix;
+            color = mix(color, vec3(1.0), cloudsMix);
+
+            gl_FragColor = vec4(color, 1.0);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+        }
+    `
+    const gui = new GUI({width:314})
+
+    const earthDayTexture = new TextureLoader().load("./earth/day.jpg");
+    earthDayTexture.colorSpace = THREE.SRGBColorSpace;
+    earthDayTexture.anisotropy = 8;
+
+    const earthNightTexture = new TextureLoader().load("./earth/night.jpg");
+    earthNightTexture.colorSpace = THREE.SRGBColorSpace;
+    earthNightTexture.anisotropy = 8;
+
+    const earthSpecularCloudsTexture = new TextureLoader().load("./earth/specularClouds.jpg");
+    earthSpecularCloudsTexture.anisotropy = 8;
+    const earthGeometry = new THREE.SphereGeometry(2, 64, 64);
+    const earthMaterial = new THREE.ShaderMaterial({
+        vertexShader: vertexShader,
+        fragmentShader:fragmentShader,
+        uniforms:{
+            uDayTexture: new THREE.Uniform(earthDayTexture),
+            uNightTexture: new THREE.Uniform(earthNightTexture),
+            uSpecularCloudsTexture: new THREE.Uniform(earthSpecularCloudsTexture),
+            uSunDirection: new THREE.Uniform(new THREE.Vector3(0, 0, 1)),
+        }
+    })
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    scene.add(earth);
+
+    const sunSpherical = new THREE.Spherical(1, Math.PI * 0.5, 0.5);
+    const sunDirection = new THREE.Vector3();
+
+    const debugSun = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.1, 2),
+        new THREE.MeshBasicMaterial()
+    );
+    scene.add(debugSun);
+
+    const updateSun = () => {
+        sunDirection.setFromSpherical(sunSpherical);
+        debugSun.position.copy(sunDirection).multiplyScalar(5);
+        earthMaterial.uniforms.uSunDirection.value.copy(sunDirection);
+        // atmosphereMaterial.uniforms.uSunDirection.value.copy(sunDirection);
+    };
+    updateSun();
+
+    gui.add(sunSpherical, "phi").min(0).max(Math.PI).onChange(updateSun);
+    gui.add(sunSpherical, "theta").min(-Math.PI).max(Math.PI).onChange(updateSun);
+
+
+</script>
+</html>
