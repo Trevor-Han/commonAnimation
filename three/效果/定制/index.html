@@ -108,12 +108,12 @@
         }
     </style>
     <link rel="stylesheet" href="./css/dat.gui.css">
+    <link type="text/css" rel="stylesheet" href="./css/mask.css">
     <script src="./3d/dat.gui.js"></script>
     <script src="./gsap/gsap.min.js"></script>
 </head>
 <body>
 <div class="LeftCustomBar-container" style="opacity: 1; ">
-
     <div class="LeftCustomBar-content">
         <div class="LeftCustomBar-top">
             <div class="Slider-content" style="opacity: 1;">
@@ -155,6 +155,25 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- 截图-->
+<div class="photo-mask display-none">
+    <div class="mask-con">
+        <div class="mask-image">
+            <img src="" alt="photo-mask" class="img"/>
+        </div>
+        <div class="mask-text">长按保存</div>
+
+    </div>
+
+    <div class="close-mask">
+        <i class="icon icon-close"></i>
+    </div>
+</div>
+
+<div class="camera">
+    <img src="./img/icon_photo.svg" alt="camera">
 </div>
 <canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
 </body>
@@ -227,9 +246,67 @@
         renderer.render( scene, camera );
     }
     //********************************↑COMMON↑***************************************
+    let longPressTimer
     const sliderContent = document.querySelector('.Slider-content')
+    const imageMask = document.querySelector('.mask-image img');
+    const photoMask = document.querySelector('.photo-mask');
+    const closeMask = document.querySelector('.close-mask');
+    const cameraMask = document.querySelector('.camera')
 
     init()
+
+    cameraMask.addEventListener('click', handleTakePicture)
+    closeMask.addEventListener('click', handleCloseMask)
+    imageMask.addEventListener("mousedown", handleImageMaskMouseDown);
+    imageMask.addEventListener("mouseup", handleImageMaskMouseUp);
+
+    async function handleTakePicture(){
+        imageMask.src = await getGltfUrl();
+        photoMask.classList.remove('display-none');
+        cameraMask.classList.add('display-none');
+        showWhiteScreen()
+    }
+    function showWhiteScreen(){
+        const screen = document.createElement('div');
+        screen.style.cssText = `
+            background: rgba(255,255,255,1);
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            animation: fade 0.5s cubic-bezier(0.075,0.82,0.165,1) forwards;
+            `
+        document.body.appendChild(screen);
+        setTimeout(function() {
+            document.body.removeChild(screen);
+        }, 100);
+    }
+
+    function handleImageMaskMouseDown(event) {
+        if (event.button === 0) {
+            longPressTimer = setTimeout(handleLongPress, 1000);
+        }
+    }
+
+    function handleImageMaskMouseUp() {
+        clearTimeout(longPressTimer);
+    }
+
+    async function handleLongPress() {
+        const dataURL = await getGltfUrl();
+        const link = document.createElement("a");
+        link.href = dataURL.toString();
+        link.download = "canvas_image.png";
+        link.click();
+    }
+
+    function handleCloseMask(){
+        photoMask.classList.add('display-none');
+        cameraMask.classList.remove('display-none');
+        imageMask.src = ''
+    }
 
     delegate(sliderContent, 'input', 'input', function(e){
         const CON_MAP = [
@@ -264,6 +341,7 @@
             event.handler(event.dom || null);
         }
     })
+
     async function init(){
         const env1 = await getRGBELoader('./img/t_env_light.hdr')
         env1.mapping = THREE.EquirectangularReflectionMapping
@@ -409,6 +487,13 @@
             el && fn.call(el,e,el)
         });
         return element;
+    }
+
+    function getGltfUrl(){
+        return new Promise((resolve)=>{
+            renderer.render( scene, camera );
+            resolve(canvas.toDataURL('image/png'))
+        })
     }
 </script>
 </html>
