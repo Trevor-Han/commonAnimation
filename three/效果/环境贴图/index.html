@@ -20,10 +20,9 @@
     import { RGBELoader } from '../../loaders/RGBELoader.js';
     import DynamicEnv from  '../../su7/js/config/DynamicEnv.js'
     import ReflectFloorMesh from '../../su7/js/config/ReflectFloor.js'
+    import { DRACOLoader } from '../../loaders/DRACOLoader.js'
     import { vertexShader as vertexWind} from "../../su7/js/shaders/wind/vertex_line.js";
     import {fragmentShader as fragmentWind} from "../../su7/js/shaders/wind/fragment_line_wind.js";
-    // import { vertexShader as reflecFloorVertexShader} from "../../su7/js/shaders/ReflecFloor/vert.js";
-    // import {fragmentShader as reflecFloorFragmentShader} from "../../su7/js/shaders/ReflecFloor/frag.js";
 
     //********************************↓COMMON↓***************************************
     const canvas = document.querySelector('#canvas')
@@ -97,6 +96,15 @@
     cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024);
     cubeRenderTarget.texture.type = THREE.UnsignedByteType;
     cubeCamera = new THREE.CubeCamera(0.1, 200, cubeRenderTarget);
+
+    const dracoLoader = new DRACOLoader()
+    dracoLoader.setDecoderPath('../../libs/draco/')
+    const glbLoader = new GLTFLoader()
+    glbLoader.setDRACOLoader(dracoLoader)
+
+    glbLoader.load('../mesh/sm_car.glb',(gltf)=>{
+        scene.add(gltf.scene)
+    })
 
     gltfLoader.load('../../su7/models/gltf/su7-car_edit.glb',(gltf)=>{
         gltf.scene.traverse((child)=>{

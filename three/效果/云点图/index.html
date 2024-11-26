@@ -20,6 +20,7 @@
 
 
     //********************************↓COMMON↓***************************************
+    const gui = new GUI({width:314})
     const gltfLoader = new GLTFLoader()
     const canvas = document.querySelector('#canvas')
     canvas.height = window.innerHeight
@@ -81,15 +82,7 @@
         new THREE.Vector2( 10, 0 )
     ] );
 
-    const points = curve.getPoints( 50 );
-    const geometry = new THREE.BufferGeometry().setFromPoints( points );
-
-    const material = new THREE.LineBasicMaterial( { color: 0xff0000 } );
-
-    // Create the final object to add to the scene
-    const splineObject = new THREE.Line( geometry, material );
-    scene.add(splineObject)
-    // init()
+    init()
    async function init(){
        model =  await loadModel()
        scene.add(model.scene)
@@ -114,7 +107,7 @@
             if (child instanceof THREE.Mesh) {
                 const vertex = new THREE.Vector3();
                 const positions = child.geometry.attributes.position;
-                for (let i = 0; i < positions.count; i++) {
+                for (let i = 0; i < positions.count; i+= 100) {
                     vertex.fromBufferAttribute(positions, i);
                     vertex.applyMatrix4(child.matrixWorld);
                     vertices.push(vertex.x, vertex.y, vertex.z);
@@ -153,7 +146,7 @@
             );
         }
         scene.add(pointCloud);
-        // previousPointCloudPositions = Array.from(vertices);
+        previousPointCloudPositions = Array.from(vertices);
     }
 
     function animatePointsToTarget(pointCloud) {
@@ -191,7 +184,7 @@
             if (!allPointsReachedTarget) {
                 requestAnimationFrame(animatePoints);
             } else {
-                // previousPointCloudPositions = Array.from(positions.array);
+                previousPointCloudPositions = Array.from(positions.array);
             }
         }
         animatePoints()

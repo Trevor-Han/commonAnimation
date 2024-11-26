@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+    import { GLTFLoader }  from '../../loaders/GLTFLoader.js';
+    import { RoomEnvironment }  from '../../environments/RoomEnvironment.js';
+
+
+    //********************************↓COMMON↓***************************************
+    const gui = new GUI({width:314})
+    const gltfLoader = new GLTFLoader()
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls
+
+    const fov = 40
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 1000
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(5, 5, 5)
+    // camera.lookAt(-10,-10, -10)
+
+
+    renderer = new THREE.WebGLRenderer({ canvas })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+    // controls.target = new THREE.Vector3(-1, -1,-1)
+
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+
+    function renderLoop(){
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+    scene.environment = new THREE.PMREMGenerator(renderer).fromScene(
+        new RoomEnvironment(),
+        0.04
+    ).texture;
+
+    let model = null
+    let previousPointCloudPositions = []
+    let pointCloud = null
+    let density = 5
+
+    const box = new THREE.Box3();
+    const size = new THREE.Vector3();
+
+    const params = {
+        stripeWidth: 0.01, // 条纹
+        percentage: 0, // 切位
+        p_size: 0.1, // 粒子大小控制
+        u_size: new THREE.Vector3(),
+        u_max: new THREE.Vector3(),
+        u_texture: null
+    }
+
+    init()
+   async function init(){
+       model =  await loadModel()
+       model.scene.traverse((child)=>{
+           if (child.isMesh){
+               changeMaterial(child)
+           }
+       })
+       box.setFromObject(model.scene)
+       box.getCenter(new THREE.Vector3())
+       box.getSize(size.addScalar(0.1))
+       params.u_size = box.getSize(size)
+       params.u_max = box.max
+       scene.add(model.scene)
+       createPointCloud(model.scene)
+       // animatePointsToTarget(pointCloud);
+    }
+    function loadModel(){
+        return new Promise((resolve)=>{
+            gltfLoader.load('./ferrari_f50_1995.glb',(gltf)=>{
+                // gltf.scene.visible = false
+                resolve(gltf)
+            })
+        })
+    }
+
+    function createPointCloud(mesh){
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+
+        mesh.updateMatrixWorld(true);
+        mesh.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                const vertex = new THREE.Vector3();
+                const positions = child.geometry.attributes.position;
+                for (let i = 0; i < positions.count; i+= density) {
+                    vertex.fromBufferAttribute(positions, i);
+                    vertex.applyMatrix4(child.matrixWorld);
+                    vertices.push(vertex.x, vertex.y, vertex.z);
+                }
+            }
+        })
+
+        let initialPositions = new Float32Array(vertices.length);
+        for (let i = 0; i < initialPositions.length; i += 3) {
+            initialPositions[i] = (Math.random() - 0.5) * 10;
+            initialPositions[i + 1] = (Math.random() - 0.5) * 10;
+            initialPositions[i + 2] = (Math.random() - 0.5) * 10;
+        }
+        geometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(initialPositions, 3)
+        );
+
+
+        // const material = new THREE.PointsMaterial({
+        //     size: 0.02,
+        //     color: 0xffffff,
+        // });
+
+        const material = pointsAnimateMaterial()
+
+        pointCloud = new THREE.Points(geometry, material);
+        pointCloud.visible = true
+
+        pointCloud.userData.targets = [];
+        pointCloud.userData.speeds = [];
+
+        for (let i = 0; i < vertices.length; i += 3) {
+            pointCloud.userData.targets.push(new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]));
+            pointCloud.userData.speeds.push(
+                Math.random() > 0.6
+                    ? Math.random() * 0.005 + 0.0005
+                    : Math.random() * 0.0005
+            );
+        }
+        scene.add(pointCloud);
+
+        const targets = pointCloud.userData.targets;
+        const positions = pointCloud.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+            positions.array[i * 3] = targets[i].x
+            positions.array[i * 3 + 1] = targets[i].y
+            positions.array[i * 3 + 2] = targets[i].z
+        }
+        // previousPointCloudPositions = Array.from( positions.array);
+        console.log(pointCloud);
+    }
+    const updateSun = () => {
+        model.scene.traverse((child)=>{
+            if (child.isMesh){
+                child.material.shader.uniforms.u_percentage.value = params.percentage
+            }
+        })
+        pointCloud.traverse(child=>{
+            child.material.uniforms.u_percentage.value = params.percentage
+        })
+        pointCloud.visible = params.percentage !== 1;
+    };
+
+    gui.add(params, "percentage").min(0).max(1).step(0.001).onChange(updateSun)
+
+    function pointsAnimateMaterial() {
+        const vertexShader = `
+          uniform float u_percentage;
+          uniform vec3 u_max;
+          uniform vec3 u_size;
+          uniform float p_size;
+          varying vec3 vPosition;
+          varying float vSide;
+          varying float vRadio;
+          // 一个简单的线性同余生成器(LCG)种子函数
+          float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+          }
+          void main() {
+            vPosition = position;
+            vSide = u_max.z - u_size.z * u_percentage;
+            float radio = (position.z - vSide) / u_size.z;
+            vRadio = radio + u_percentage;
+            float rotate = radio * u_percentage * 9.0 ;
+            float r = rand(position.xy);
+            float random = r * radio * 8.0;
+            float random2 = (sin(random+position.x+position.y+vSide)+1.0) * radio * 10.0;
+            //绕z轴旋转rotate,同时用随机数+ 数学技巧让点扩散
+            vec3 rotate_pos = vec3((position.x * cos(rotate) + position.y * sin(rotate)*r)*(random+1.0), (position.x * sin(rotate) + position.y * cos(rotate)+random*radio)*(random+1.0), position.z+random2);
+            vec4 mvPosition = modelViewMatrix * vec4(rotate_pos, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+            gl_PointSize =  50.0 * p_size * (2.0-radio) / -mvPosition.z;
+          }
+        `
+
+        // 片段着色器
+        const fragmentShader = /* GLSL */ `
+          varying vec3 vPosition;
+          varying float vSide;
+          varying float vRadio;
+          uniform vec3 u_color;
+
+          void main() {
+             if(vPosition.z < vSide){
+                    discard;
+              }
+            float alpha = 1.0;
+            if(vRadio > 0.0 ){
+            alpha = 2.0 - vRadio;
+            }
+            // gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+            gl_FragColor = vec4(u_color, alpha);
+          }
+         `;
+        return new THREE.ShaderMaterial({
+            uniforms: {
+                u_percentage:{
+                    value: params.percentage
+                },
+                p_size:{
+                    value: params.p_size
+                },
+                u_size:{
+                    value: params.u_size
+                },
+                u_max:{
+                  value: params.u_max
+                },
+                u_texture: {
+                    value: params.u_texture
+                },
+                u_color:{
+                    value: new THREE.Color(0x00ffff)
+                }
+            },
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            vertexShader,
+            fragmentShader,
+        });
+    }
+
+
+    function changeMaterial(object) {
+
+        object.geometry.computeBoundingBox();
+        const material = object.material
+        // 自定义拓展材质
+        material.onBeforeCompile = (shader) => {
+            material.shader = shader;
+            shader.uniforms.u_percentage = {
+                value: params.percentage
+            };
+            shader.uniforms.u_stripeColor = {
+                value: new THREE.Color('#0b83d9'),
+            };
+            shader.uniforms.u_size = {
+                value: params.u_size
+            };
+            shader.uniforms.u_max = {
+                value: params.u_max
+            };
+            shader.uniforms.u_stripeWidth = {
+                value: params.stripeWidth
+            }
+
+
+            /**
+             * 对片元着色器进行修改
+             */
+            const fragment = `
+        varying vec4 vPosition;
+        uniform float u_percentage;
+        uniform float u_stripeWidth;
+        uniform vec3 u_stripeColor;
+        uniform vec3 u_size;
+        uniform vec3 u_max;
+        void main() {
+        `;
+            const fragmentColor = `
+        #include <dithering_fragment>
+        vec3 distColor = outgoingLight;
+        float distOpacity = diffuseColor.a;
+        float width = u_stripeWidth;
+        float side = u_max.z - u_size.z * u_percentage;
+        float wave = sin(cos(vPosition.z*2.0)*3.0+vPosition.x*3.2)*0.08+cos(vPosition.x*2.1+vPosition.y*3.0+side)*0.03+cos(vPosition.z*2.0+vPosition.y*3.0)*0.08 + sin(vPosition.z*7.0)*0.01;
+        side = side + wave;
+        width = width + 0.1* sin(wave*40.0);
+        if(vPosition.z > side ){
+          discard;
+        } else if(side - vPosition.z < width){
+          float indexMix = (side - vPosition.z) / width;
+          distColor = mix( u_stripeColor,distColor, indexMix);
+        }
+        gl_FragColor = vec4(distColor, distOpacity);
+        `;
+            shader.fragmentShader = shader.fragmentShader.replace(
+                "void main() {",
+                fragment
+            );
+            shader.fragmentShader = shader.fragmentShader.replace(
+                "#include <dithering_fragment>",
+                fragmentColor
+            );
+
+            /**
+             * 对顶点着色器进行修改
+             */
+            const vertex = `
+        varying vec4 vPosition;
+        void main() {
+            vPosition = modelMatrix * vec4( position, 1.0 );
+          `;
+
+
+            shader.vertexShader = shader.vertexShader.replace(
+                "void main() {",
+                vertex
+            );
+        };
+    }
+
+</script>
+</html>

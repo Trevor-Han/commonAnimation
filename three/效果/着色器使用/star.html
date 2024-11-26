@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <link rel="stylesheet" href="../../css/dat.gui.css">
+    <script src="../../3d/dat.gui.js"></script>
+</head>
+<body>
+<canvas id="canvas" class="c2d" width="1000" height="500"></canvas>
+</body>
+<script type="module">
+    import * as THREE from '../../3d/three.module.js';
+    import { OrbitControls }  from '../../3d/OrbitControls.js'
+
+    //********************************↓COMMON↓***************************************
+    const canvas = document.querySelector('#canvas')
+    canvas.height = window.innerHeight
+    canvas.width = window.innerWidth
+
+    let scene,camera,renderer,controls,material
+
+    const fov = 20
+    const aspect =  window.innerWidth/  window.innerHeight
+    const near = 0.1
+    const far = 1000
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#232323')
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
+    camera.position.set(0, 10, 15)
+    // camera.lookAt(10,10, 10)
+
+    renderer = new THREE.WebGLRenderer({ canvas,antialias: true })
+    renderer.setAnimationLoop(renderLoop);
+    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    // 控制相机
+    controls = new OrbitControls(camera, canvas)
+
+
+    window.addEventListener('resize', onWindowResized);
+
+    function onWindowResized() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+    }
+    const clock = new THREE.Clock()
+    function renderLoop(){
+        // material.uniforms.uTime.value = clock.getElapsedTime();
+        firefliesMaterial.uniforms.uTime.value = clock.getElapsedTime();
+        renderer.render( scene, camera );
+    }
+
+    //********************************↑COMMON↑***************************************
+    const geometry = new THREE.BufferGeometry();
+    const count = 300;
+    const position = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+
+    for (let i = 0; i < count; i++){
+        const r = Math.random() * 5 + 5;
+        position[i * 3] = (Math.random() - 0.5) * r;
+        position[i * 3 + 1] = (Math.random() - 0.5) * r;
+        position[i * 3 + 2] = (Math.random() - 0.5) * r;
+
+        sizes[i] = Math.random() + 0.4;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(position,3))
+    geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes,1))
+    const firefliesVertexShader = /* GLSL */ `
+    uniform float uTime;
+    attribute float aSize;
+    varying vec2 vUv;
+
+    void main() {
+       vUv = uv;
+        vec3 newPos = position;
+        newPos.y += sin(uTime * 0.5 + newPos.x * 100.0) * aSize * 0.2;
+        newPos.x += sin(uTime * 0.5 + newPos.x * 200.0) * aSize * 0.1;
+        vec4 mvPosition = modelViewMatrix * vec4(newPos, 1.0);
+        gl_PointSize = 170.0 * aSize / - mvPosition.z;
+        gl_Position = projectionMatrix * mvPosition;
+    }
+`;
+
+    const firefliesFragmentShader = /* GLSL */ `
+    varying vec2 vUv;
+
+    void main() {
+      float d = length(gl_PointCoord - vec2(0.5));
+      float strength = clamp(0.05 / d - 0.05 * 2.0, 0.0, 1.0);
+       gl_FragColor = vec4(vec3(1.0), strength);
+       // gl_FragColor = vec4(vUv.x + 0.5, 0.0, 0.0, strength);
+  }
+`;
+    const firefliesMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime: { value: 0 },
+        },
+        vertexShader: firefliesVertexShader,
+        fragmentShader: firefliesFragmentShader,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+    });
+    const flies = new THREE.Points(geometry, firefliesMaterial);
+    scene.add(flies);
+
+    const vert = /* GLSL */ `
+    uniform float uTime;
+    attribute float aSize;
+    varying vec2 vUv;
+
+    void main() {
+       vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);;
+    }
+`;
+
+    const fragment = /* GLSL */ `
+    varying vec2 vUv;
+    uniform vec3 colors[9];
+    void main() {
+       int index = int(vUv.x * 3.0) + int(vUv.y * 3.0) * 3;
+       gl_FragColor = vec4(colors[index], 1.0);
+  }
+`;
+    const geometry_1 = new THREE.BoxGeometry( 1, 1, 1 );
+    const material_1 = new THREE.ShaderMaterial({
+        uniforms: {
+            colors: { value: [
+                    new THREE.Color(1, 0, 0),  // 红色
+                    new THREE.Color(0, 1, 0),  // 绿色
+                    new THREE.Color(0, 0, 1),  // 蓝色
+                    new THREE.Color(1, 1, 0),  // 黄色
+                    new THREE.Color(1, 0, 1),  // 品红
+                    new THREE.Color(0, 1, 1),  // 青色
+                    new THREE.Color(0.5, 0.5, 0.5), // 灰色
+                    new THREE.Color(1, 0.5, 0), // 橙色
+                    new THREE.Color(0, 1, 0.5)  // 青绿色
+                ]}
+        },
+        vertexShader: vert,
+        fragmentShader: fragment,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+    });
+    const cube = new THREE.Mesh( geometry_1, material_1 );
+    scene.add( cube );
+
+
+</script>
+</html>
